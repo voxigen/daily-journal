@@ -20,8 +20,9 @@ const ACCENTS: { key: string; hex: string }[] = [
 const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
   { key: 'aurora', label: 'Сияние' },
-  { key: 'gradient', label: 'Градиент' },
-  { key: 'glow', label: 'Свечение' },
+  { key: 'particles', label: 'Частицы' },
+  { key: 'stars', label: 'Звёзды' },
+  { key: 'beams', label: 'Лучи' },
   { key: 'grid', label: 'Сетка' },
 ];
 
@@ -62,6 +63,7 @@ export default function SettingsView() {
     setBgState(key);
     document.documentElement.dataset.bg = key;
     localStorage.setItem('bg', key);
+    window.dispatchEvent(new Event('bgchange'));
   }
 
   return (

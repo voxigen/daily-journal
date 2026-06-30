@@ -77,29 +77,53 @@ html, body {
 html { background: var(--page); }
 body { background: transparent; }
 
-/* ── Animated background ── */
+/* ── Animated backgrounds ── */
 .bg-anim { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.bg-anim span { position: absolute; display: block; opacity: 0; }
+:root[data-theme='light'] .bg-anim { opacity: 0.75; }
 
-:root[data-bg='aurora'] .bg-anim span { border-radius: 50%; filter: blur(80px); }
-:root[data-bg='aurora'] .bg-anim span:nth-child(1) { width: 46vmax; height: 46vmax; left: -10vmax; top: -12vmax; background: var(--accent); opacity: 0.20; animation: drift1 28s ease-in-out infinite; }
-:root[data-bg='aurora'] .bg-anim span:nth-child(2) { width: 38vmax; height: 38vmax; right: -8vmax; top: 8vmax; background: var(--accent); opacity: 0.14; animation: drift2 34s ease-in-out infinite; }
-:root[data-bg='aurora'] .bg-anim span:nth-child(3) { width: 34vmax; height: 34vmax; left: 24vmax; bottom: -16vmax; background: var(--blue); opacity: 0.13; animation: drift3 40s ease-in-out infinite; }
+/* Сияние — aurora mesh */
+.bg-aurora span { position: absolute; border-radius: 50%; will-change: transform; }
+.bg-aurora span:nth-child(1) { width: 62vmax; height: 62vmax; left: -18vmax; top: -24vmax; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent), transparent 62%); animation: au1 17s ease-in-out infinite; }
+.bg-aurora span:nth-child(2) { width: 52vmax; height: 52vmax; right: -16vmax; top: -10vmax; background: radial-gradient(circle, color-mix(in srgb, var(--blue) 50%, transparent), transparent 62%); animation: au2 21s ease-in-out infinite; }
+.bg-aurora span:nth-child(3) { width: 50vmax; height: 50vmax; left: 10vmax; bottom: -24vmax; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 50%, transparent), transparent 62%); animation: au3 19s ease-in-out infinite; }
+.bg-aurora span:nth-child(4) { width: 44vmax; height: 44vmax; right: 4vmax; bottom: -20vmax; background: radial-gradient(circle, color-mix(in srgb, #e11d48 40%, transparent), transparent 62%); animation: au4 25s ease-in-out infinite; }
+@keyframes au1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(16vmax,12vmax) scale(1.22); } }
+@keyframes au2 { 0%,100% { transform: translate(0,0) scale(1.1); } 50% { transform: translate(-14vmax,14vmax) scale(1); } }
+@keyframes au3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(12vmax,-14vmax) scale(1.25); } }
+@keyframes au4 { 0%,100% { transform: translate(0,0) scale(1.15); } 50% { transform: translate(-12vmax,-10vmax) scale(1); } }
 
-:root[data-bg='gradient'] .bg-anim { background: linear-gradient(120deg, var(--accent), transparent 38%, transparent 62%, var(--blue)); background-size: 240% 240%; opacity: 0.12; animation: gradShift 22s ease-in-out infinite; }
-:root[data-bg='glow'] .bg-anim { background: radial-gradient(58vmax 42vmax at 50% -12%, var(--accent), transparent 70%); opacity: 0.16; animation: glowPulse 11s ease-in-out infinite; }
-:root[data-bg='grid'] .bg-anim { background-image: linear-gradient(color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px); background-size: 46px 46px; opacity: 0.5; animation: gridMove 26s linear infinite; }
-
-@keyframes drift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8vmax,6vmax); } }
-@keyframes drift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-7vmax,5vmax); } }
-@keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(5vmax,-7vmax); } }
-@keyframes gradShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-@keyframes glowPulse { 0%,100% { opacity: 0.10; } 50% { opacity: 0.20; } }
-@keyframes gridMove { from { background-position: 0 0, 0 0; } to { background-position: 46px 46px, 46px 46px; } }
-
-@media (prefers-reduced-motion: reduce) {
-  .bg-anim span, .bg-anim { animation: none !important; }
+/* Частицы — rising particles */
+.bg-particles span { position: absolute; bottom: -10px; border-radius: 50%; background: var(--accent); opacity: 0; animation-name: rise; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform, opacity; }
+@keyframes rise {
+  0% { transform: translate3d(0,0,0); opacity: 0; }
+  12% { opacity: 0.7; }
+  88% { opacity: 0.6; }
+  100% { transform: translate3d(var(--drift,0), -104vh, 0); opacity: 0; }
 }
+
+/* Звёзды — twinkling starfield */
+.bg-stars span { position: absolute; border-radius: 50%; background: var(--accent); opacity: 0.12; animation-name: twinkle; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+@keyframes twinkle { 0%,100% { opacity: 0.10; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.5); } }
+
+/* Лучи — sweeping beams */
+.bg-beams span { position: absolute; top: -30%; height: 160%; width: 15vmax; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 48%, transparent), transparent); filter: blur(6px); will-change: transform; opacity: 0; }
+.bg-beams span:nth-child(1) { animation: beam 11s ease-in-out infinite; }
+.bg-beams span:nth-child(2) { animation: beam 15s ease-in-out 2.5s infinite; }
+.bg-beams span:nth-child(3) { animation: beam 13s ease-in-out 5s infinite; }
+@keyframes beam {
+  0% { transform: translateX(-25vw) rotate(14deg); opacity: 0; }
+  15% { opacity: 0.85; }
+  85% { opacity: 0.85; }
+  100% { transform: translateX(125vw) rotate(14deg); opacity: 0; }
+}
+
+/* Сетка — moving grid */
+.bg-grid span { position: absolute; inset: -25%; will-change: transform;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--accent) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 30%, transparent) 1px, transparent 1px);
+  background-size: 50px 50px; animation: gridmove 12s linear infinite; }
+@keyframes gridmove { from { transform: translate(0,0); } to { transform: translate(50px,50px); } }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -526,11 +550,19 @@ textarea { min-height: 84px; line-height: 1.6; }
 
 .bg-prev.none { background: var(--surface-2); }
 .bg-prev.aurora { background:
-  radial-gradient(circle at 22% 28%, color-mix(in srgb, var(--accent) 70%, transparent), transparent 45%),
-  radial-gradient(circle at 78% 72%, color-mix(in srgb, var(--blue) 60%, transparent), transparent 45%),
+  radial-gradient(circle at 22% 28%, color-mix(in srgb, var(--accent) 70%, transparent), transparent 48%),
+  radial-gradient(circle at 78% 72%, color-mix(in srgb, var(--blue) 60%, transparent), transparent 48%),
   var(--surface-2); }
-.bg-prev.gradient { background: linear-gradient(120deg, var(--accent), var(--blue)); background-size: 200% 200%; animation: gradShift 8s ease-in-out infinite; }
-.bg-prev.glow { background: radial-gradient(70% 90% at 50% 0%, var(--accent), transparent 70%), var(--surface-2); }
+.bg-prev.particles { background-color: var(--surface-2);
+  background-image: radial-gradient(circle, var(--accent) 1.6px, transparent 1.8px);
+  background-size: 16px 16px; }
+.bg-prev.stars { background-color: var(--surface-2);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--accent) 80%, transparent) 1px, transparent 1.4px);
+  background-size: 19px 19px; }
+.bg-prev.beams { background:
+  repeating-linear-gradient(62deg, transparent 0 13px, color-mix(in srgb, var(--accent) 42%, transparent) 13px 19px),
+  var(--surface-2); background-size: 200% 100%; animation: prevbeams 6s linear infinite; }
+@keyframes prevbeams { from { background-position: 0 0; } to { background-position: 46px 0; } }
 .bg-prev.grid { background-color: var(--surface-2); background-image:
   linear-gradient(color-mix(in srgb, var(--accent) 35%, transparent) 1px, transparent 1px),
   linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent) 1px, transparent 1px);

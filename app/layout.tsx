@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import './globals.css';
 
 const inter = Inter({
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <div className="bg-anim" aria-hidden="true"><span /><span /><span /></div>
+        <AnimatedBackground />
         {children}
         <script
           dangerouslySetInnerHTML={{

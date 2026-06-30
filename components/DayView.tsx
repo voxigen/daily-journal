@@ -134,7 +134,9 @@ export default function DayView({
       });
       if (error) { alert('Не удалось загрузить фото: ' + error.message); return; }
       const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      setPhotoUrls((prev) => [...prev, publicUrl]); // photosRef updates on re-render
+      const next = [...photosRef.current, publicUrl];
+      photosRef.current = next; // keep ref current so saveDay sees the new photo immediately
+      setPhotoUrls(next);
       await saveDay(false);
     } finally {
       setUploadingPhoto(false);

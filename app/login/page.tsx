@@ -51,7 +51,7 @@ export default function LoginPage() {
         {error && <div className="error-msg">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="field">
+          <div className="auth-field">
             <label>Email</label>
             <input
               type="email"
@@ -62,7 +62,7 @@ export default function LoginPage() {
               autoComplete="email"
             />
           </div>
-          <div className="field">
+          <div className="auth-field">
             <label>Пароль</label>
             <input
               type="password"
@@ -74,14 +74,13 @@ export default function LoginPage() {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
           </div>
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+          <button className="btn btn-primary btn-block" type="submit" disabled={loading} style={{ marginTop: 6 }}>
+            {loading ? 'Загрузка…' : mode === 'login' ? 'Войти' : 'Зарегистрироваться'}
           </button>
         </form>
 
         <button
-          className="btn btn-ghost"
-          style={{ marginTop: 12 }}
+          className="auth-switch"
           onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
         >
           {mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}

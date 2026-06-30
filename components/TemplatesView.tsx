@@ -33,38 +33,39 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
   }
 
   return (
-    <AppShell>
-      <div className="templates-page">
-        <div className="page-head">
-          <span className="page-head-count">{templates.length} шаблонов</span>
-          <button className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowModal(true); }}>
-            <Plus className="icon-sm" /> Новый
-          </button>
+    <AppShell title="Шаблоны">
+      <div className="page-head">
+        <span className="page-head-count">{templates.length} шаблонов</span>
+        <button className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowModal(true); }}>
+          <Plus className="icon-sm" /> Новый шаблон
+        </button>
+      </div>
+
+      {templates.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon"><LayoutGrid /></div>
+          <div className="empty-title">Пока нет шаблонов</div>
+          <p>Создай шаблон, чтобы добавлять однотипные дела с нужными полями</p>
         </div>
-
-        {templates.length === 0 && (
-          <div className="empty">
-            <div className="empty-icon"><LayoutGrid /></div>
-            <p>Создай первый шаблон, чтобы быстро добавлять однотипные дела</p>
-          </div>
-        )}
-
-        {templates.map((t) => (
-          <div key={t.id} className="template-card">
-            <div className="template-card-icon">{t.icon}</div>
-            <div className="template-card-info">
-              <div className="template-card-name" style={{ color: t.color }}>{t.name}</div>
-              <div className="template-card-fields">
-                {t.fields.length ? t.fields.map((f) => f.name).join(' · ') : 'Без дополнительных полей'}
+      ) : (
+        <div className="tpl-list">
+          {templates.map((t) => (
+            <div key={t.id} className="tpl-row">
+              <div className="tpl-row-icon">{t.icon}</div>
+              <div className="tpl-row-info">
+                <div className="tpl-row-name" style={{ color: t.color }}>{t.name}</div>
+                <div className="tpl-row-meta">
+                  {t.fields.length ? t.fields.map((f) => f.name).join(' · ') : 'Без дополнительных полей'}
+                </div>
+              </div>
+              <div className="tpl-row-actions">
+                <button className="icon-btn" onClick={() => { setEditing(t); setShowModal(true); }} aria-label="Изменить"><Pencil className="icon-sm" /></button>
+                <button className="icon-btn danger" onClick={() => handleDelete(t.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
               </div>
             </div>
-            <div className="template-card-actions">
-              <button className="btn-icon" onClick={() => { setEditing(t); setShowModal(true); }} aria-label="Изменить"><Pencil className="icon-sm" /></button>
-              <button className="btn-icon danger" onClick={() => handleDelete(t.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {showModal && (
         <TemplateModal

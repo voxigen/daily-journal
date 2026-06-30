@@ -3,10 +3,17 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { NotebookPen, CalendarDays, LayoutGrid, LogOut } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
-type Props = { children: React.ReactNode; date?: string };
+type Props = { children: React.ReactNode; title?: string; subtitle?: string };
 
-export default function AppShell({ children, date }: Props) {
+const NAV = [
+  { href: '/',          Icon: NotebookPen,  label: 'Сегодня', match: (p: string) => p === '/' || p.startsWith('/day') },
+  { href: '/history',   Icon: CalendarDays, label: 'История', match: (p: string) => p === '/history' },
+  { href: '/templates', Icon: LayoutGrid,   label: 'Шаблоны', match: (p: string) => p === '/templates' },
+];
+
+export default function AppShell({ children, title, subtitle }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -17,38 +24,49 @@ export default function AppShell({ children, date }: Props) {
     router.refresh();
   }
 
-  const nav = [
-    { href: '/',          Icon: NotebookPen,  label: 'Сегодня', match: (p: string) => p === '/' || p.startsWith('/day') },
-    { href: '/history',   Icon: CalendarDays, label: 'История', match: (p: string) => p === '/history' },
-    { href: '/templates', Icon: LayoutGrid,   label: 'Шаблоны', match: (p: string) => p === '/templates' },
-  ];
-
   return (
-    <div className="app-wrap">
-      <header className="app-header">
-        <div className="header-left">
-          <span className="header-mark"><NotebookPen /></span>
-          <div className="header-titles">
-            <h1>Daily Journal</h1>
-            {date && <div className="header-date">{date}</div>}
-          </div>
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="brand-mark"><NotebookPen /></span>
+          <span className="brand-name">Journal</span>
         </div>
-        <button className="logout-btn" onClick={logout} aria-label="Выйти">
-          <LogOut className="icon" />
-        </button>
-      </header>
+        <nav className="sidebar-nav">
+          {NAV.map(({ href, Icon, label, match }) => (
+            <button key={href} className={`side-link${match(pathname) ? ' active' : ''}`} onClick={() => router.push(href)}>
+              <Icon /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-foot">
+          <button className="side-link" onClick={logout}><LogOut /> Выйти</button>
+        </div>
+      </aside>
 
-      <main className="app-content">{children}</main>
+      <div className="main">
+        <header className="topbar">
+          <div className="topbar-title">
+            {title && <h1>{title}</h1>}
+            {subtitle && <div className="sub">{subtitle}</div>}
+          </div>
+          <div className="topbar-mobile-brand">
+            <span className="brand-mark"><NotebookPen /></span>
+            <span className="brand-name">{title ?? 'Journal'}</span>
+          </div>
+          <div className="topbar-actions">
+            <ThemeToggle />
+            <button className="icon-btn" onClick={logout} aria-label="Выйти"><LogOut className="icon" /></button>
+          </div>
+        </header>
 
-      <nav className="bottom-nav">
-        {nav.map(({ href, Icon, label, match }) => (
-          <button
-            key={href}
-            className={`nav-item${match(pathname) ? ' active' : ''}`}
-            onClick={() => router.push(href)}
-          >
+        <main className="content">{children}</main>
+      </div>
+
+      <nav className="tabbar">
+        {NAV.map(({ href, Icon, label, match }) => (
+          <button key={href} className={`tab-link${match(pathname) ? ' active' : ''}`} onClick={() => router.push(href)}>
             <Icon />
-            <span className="nav-label">{label}</span>
+            <span className="tab-label">{label}</span>
           </button>
         ))}
       </nav>

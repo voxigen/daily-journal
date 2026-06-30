@@ -25,11 +25,10 @@ export default async function Home() {
   ]);
 
   return (
-    <AppShell date={formatDateRu(today)}>
+    <AppShell title="Сегодня" subtitle={formatDateRu(today)}>
       <DayView
         userId={user.id}
         date={today}
-        displayDate={formatDateRu(today)}
         initialTasks={tasks ?? []}
         initialDay={todayDay ?? null}
         plannedFromYesterday={yesterdayDay?.planned_next ?? null}

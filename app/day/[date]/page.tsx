@@ -33,11 +33,10 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
   ]);
 
   return (
-    <AppShell date={formatDateRu(date)}>
+    <AppShell title={formatDateRu(date)}>
       <DayView
         userId={user.id}
         date={date}
-        displayDate={formatDateRu(date)}
         initialTasks={tasks ?? []}
         initialDay={day ?? null}
         plannedFromYesterday={prevDay?.planned_next ?? null}

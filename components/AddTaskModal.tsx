@@ -2,13 +2,10 @@
 
 import { useState } from 'react';
 import { formatDuration } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 
 type Template = {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
+  id: string; name: string; color: string; icon: string;
   fields: { name: string; placeholder: string; type: string }[];
 };
 
@@ -62,26 +59,29 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="sheet">
         <div className="sheet-handle" />
-        <div className="sheet-title">{initial ? 'Редактировать дело' : 'Новое дело'}</div>
+        <div className="sheet-head">
+          <span className="sheet-title">{initial ? 'Редактировать дело' : 'Новое дело'}</span>
+          <button className="icon-btn" onClick={onClose} aria-label="Закрыть"><X className="icon" /></button>
+        </div>
         <div className="sheet-body">
 
           {templates.length > 0 && (
             <div className="field">
               <label>Шаблон (необязательно)</label>
-              <div className="template-grid">
+              <div className="tpl-grid">
                 {templates.map((t) => (
                   <button
                     key={t.id}
                     type="button"
-                    className={`template-pick-btn${selectedTemplate?.id === t.id ? ' selected' : ''}`}
+                    className={`tpl-pick${selectedTemplate?.id === t.id ? ' sel' : ''}`}
                     onClick={() => {
                       const isSame = selectedTemplate?.id === t.id;
                       setSelectedTemplate(isSame ? null : t);
                       if (!isSame) setFieldsData(initial?.template_id === t.id ? (initial.fields_data ?? {}) : {});
                     }}
                   >
-                    <span className="template-pick-icon">{t.icon}</span>
-                    <span className="template-pick-name">{t.name}</span>
+                    <span className="tpl-pick-icon">{t.icon}</span>
+                    <span className="tpl-pick-name">{t.name}</span>
                   </button>
                 ))}
               </div>
@@ -89,32 +89,17 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
           )}
 
           <div className="field">
-            <label>Что сделал *</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Опиши выполненное дело…"
-              autoFocus
-            />
+            <label>Что сделал</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Опиши выполненное дело" autoFocus />
           </div>
 
           {selectedTemplate?.fields.map((f) => (
             <div key={f.name} className="field">
               <label>{f.name}</label>
               {f.type === 'textarea' ? (
-                <textarea
-                  value={fieldsData[f.name] ?? ''}
-                  onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })}
-                  placeholder={f.placeholder}
-                  rows={3}
-                />
+                <textarea value={fieldsData[f.name] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })} placeholder={f.placeholder} rows={3} />
               ) : (
-                <input
-                  type={f.type === 'number' ? 'number' : 'text'}
-                  value={fieldsData[f.name] ?? ''}
-                  onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })}
-                  placeholder={f.placeholder}
-                />
+                <input type={f.type === 'number' ? 'number' : 'text'} value={fieldsData[f.name] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })} placeholder={f.placeholder} />
               )}
             </div>
           ))}
@@ -124,11 +109,11 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
               <Clock className="icon-sm" /> Затраченное время
             </label>
             <div className="time-row">
-              <div className="time-input-wrap">
+              <div className="time-wrap">
                 <input type="number" min="0" max="23" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="0" />
                 <span className="time-unit">ч</span>
               </div>
-              <div className="time-input-wrap">
+              <div className="time-wrap">
                 <input type="number" min="0" max="59" value={mins} onChange={(e) => setMins(e.target.value)} placeholder="0" />
                 <span className="time-unit">мин</span>
               </div>
@@ -136,7 +121,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
             {totalMinutes > 0 && <div className="time-total">Итого: {formatDuration(totalMinutes)}</div>}
           </div>
 
-          <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleSave} disabled={saving || !title.trim()}>
+          <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !title.trim()}>
             {saving ? 'Сохраняю…' : initial ? 'Сохранить' : 'Добавить дело'}
           </button>
         </div>

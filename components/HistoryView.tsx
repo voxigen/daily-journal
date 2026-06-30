@@ -12,50 +12,47 @@ export default function HistoryView({ days, totalDays, totalTasks }: { days: Day
   const router = useRouter();
 
   return (
-    <AppShell>
-      <div className="history-page">
-        <div className="stats-bar">
-          <div className="stat-item">
-            <div className="stat-val">{totalDays}</div>
-            <div className="stat-lbl">дней</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-val">{totalTasks}</div>
-            <div className="stat-lbl">дел всего</div>
-          </div>
+    <AppShell title="История">
+      <div className="metrics">
+        <div className="metric">
+          <div className="metric-val">{totalDays}</div>
+          <div className="metric-lbl">дней с записями</div>
         </div>
+        <div className="metric">
+          <div className="metric-val">{totalTasks}</div>
+          <div className="metric-lbl">дел всего</div>
+        </div>
+      </div>
 
-        {days.length === 0 && (
-          <div className="empty">
-            <div className="empty-icon"><CalendarDays /></div>
-            <p>История пока пуста — начни записывать дела на вкладке «Сегодня»</p>
-          </div>
-        )}
-
-        {days.map((day) => {
+      {days.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon"><CalendarDays /></div>
+          <div className="empty-title">История пуста</div>
+          <p>Записывай дела на вкладке «Сегодня» — они появятся здесь</p>
+        </div>
+      ) : (
+        days.map((day) => {
           const totalMin = day.tasks.reduce((s, t) => s + (t.duration_minutes ?? 0), 0);
           return (
-            <div key={day.date} className="history-day" onClick={() => router.push(`/day/${day.date}`)}>
-              <div className="history-day-top">
-                <span className="history-day-date">{formatDateRu(day.date)}</span>
-                {totalMin > 0 && (
-                  <span className="history-day-time"><Clock /> {formatDuration(totalMin)}</span>
-                )}
+            <button key={day.date} className="hist-day" onClick={() => router.push(`/day/${day.date}`)}>
+              <div className="hist-top">
+                <span className="hist-date">{formatDateRu(day.date)}</span>
+                {totalMin > 0 && <span className="hist-time"><Clock /> {formatDuration(totalMin)}</span>}
               </div>
-              <div className="history-day-tasks">
+              <div className="hist-tasks">
                 {day.tasks.slice(0, 4).map((t, i) => (
-                  <div key={i} className="history-task-row">
-                    <span className="history-task-dot" style={{ background: t.template_color ?? 'var(--accent)' }} />
-                    {t.template_icon && <span className="history-task-emoji">{t.template_icon}</span>}
-                    <span className="history-task-label">{t.title}</span>
+                  <div key={i} className="hist-task">
+                    <span className="hist-task-dot" style={{ background: t.template_color ?? 'var(--accent)' }} />
+                    {t.template_icon && <span className="hist-task-emoji">{t.template_icon}</span>}
+                    <span className="hist-task-label">{t.title}</span>
                   </div>
                 ))}
-                {day.tasks.length > 4 && <div className="history-more">+ ещё {day.tasks.length - 4}</div>}
+                {day.tasks.length > 4 && <div className="hist-more">+ ещё {day.tasks.length - 4}</div>}
               </div>
-            </div>
+            </button>
           );
-        })}
-      </div>
+        })
+      )}
     </AppShell>
   );
 }

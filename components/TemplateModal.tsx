@@ -38,12 +38,15 @@ export default function TemplateModal({ initial, onSave, onClose }: Props) {
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="sheet">
         <div className="sheet-handle" />
-        <div className="sheet-title">{initial ? 'Редактировать шаблон' : 'Новый шаблон'}</div>
+        <div className="sheet-head">
+          <span className="sheet-title">{initial ? 'Редактировать шаблон' : 'Новый шаблон'}</span>
+          <button className="icon-btn" onClick={onClose} aria-label="Закрыть"><X className="icon" /></button>
+        </div>
         <div className="sheet-body">
 
           <div className="field">
             <label>Название</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Тренировка, Учёба…" autoFocus />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Тренировка, Учёба, Работа" autoFocus />
           </div>
 
           <div className="field">
@@ -59,15 +62,8 @@ export default function TemplateModal({ initial, onSave, onClose }: Props) {
             <label>Цвет</label>
             <div className="color-row">
               {COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`color-swatch${color === c ? ' active' : ''}`}
-                  style={{ background: c, color: c }}
-                  onClick={() => setColor(c)}
-                  aria-label={`Цвет ${c}`}
-                >
-                  {color === c && <Check className="icon-sm" style={{ color: '#fff', margin: '0 auto' }} />}
+                <button key={c} type="button" className={`color-sw${color === c ? ' active' : ''}`} style={{ background: c, color: c }} onClick={() => setColor(c)} aria-label={`Цвет ${c}`}>
+                  {color === c && <Check className="icon-sm" style={{ color: '#fff' }} />}
                 </button>
               ))}
             </div>
@@ -78,22 +74,22 @@ export default function TemplateModal({ initial, onSave, onClose }: Props) {
             <div className="fields-list">
               {fields.map((f, i) => (
                 <div key={i} className="field-row">
-                  <input value={f.name} onChange={(e) => updateField(i, 'name', e.target.value)} placeholder="Название поля" style={{ flex: 1 }} />
-                  <select value={f.type} onChange={(e) => updateField(i, 'type', e.target.value)} style={{ width: 96, flexShrink: 0 }}>
+                  <input value={f.name} onChange={(e) => updateField(i, 'name', e.target.value)} placeholder="Название поля" />
+                  <select value={f.type} onChange={(e) => updateField(i, 'type', e.target.value)} style={{ width: 100, flex: 'none' }}>
                     <option value="text">Текст</option>
                     <option value="number">Число</option>
                     <option value="textarea">Абзац</option>
                   </select>
-                  <button type="button" className="btn-icon" onClick={() => removeField(i)} aria-label="Удалить поле"><X className="icon-sm" /></button>
+                  <button type="button" className="icon-btn" onClick={() => removeField(i)} aria-label="Удалить поле"><X className="icon-sm" /></button>
                 </div>
               ))}
             </div>
-            <button type="button" className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={addField}>
+            <button type="button" className="btn btn-secondary btn-sm btn-block" onClick={addField}>
               <Plus className="icon-sm" /> Добавить поле
             </button>
           </div>
 
-          <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleSave} disabled={saving || !name.trim()}>
+          <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !name.trim()}>
             {saving ? 'Сохраняю…' : initial ? 'Сохранить' : 'Создать шаблон'}
           </button>
         </div>

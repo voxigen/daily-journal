@@ -2,15 +2,16 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { NotebookPen, CalendarDays, LayoutGrid, LogOut } from 'lucide-react';
+import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 type Props = { children: React.ReactNode; title?: string; subtitle?: string };
 
 const NAV = [
-  { href: '/',          Icon: NotebookPen,  label: 'Сегодня', match: (p: string) => p === '/' || p.startsWith('/day') },
-  { href: '/history',   Icon: CalendarDays, label: 'История', match: (p: string) => p === '/history' },
-  { href: '/templates', Icon: LayoutGrid,   label: 'Шаблоны', match: (p: string) => p === '/templates' },
+  { href: '/',          Icon: NotebookPen,    label: 'Сегодня',    match: (p: string) => p === '/' || p.startsWith('/day') },
+  { href: '/history',   Icon: CalendarDays,   label: 'История',    match: (p: string) => p === '/history' },
+  { href: '/stats',     Icon: ChartColumnBig, label: 'Статистика', match: (p: string) => p === '/stats' },
+  { href: '/templates', Icon: LayoutGrid,     label: 'Шаблоны',    match: (p: string) => p === '/templates' },
 ];
 
 export default function AppShell({ children, title, subtitle }: Props) {

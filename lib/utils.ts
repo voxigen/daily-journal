@@ -17,6 +17,20 @@ export function yesterdayStr(): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Monday-based weekday index: Mon=0 … Sun=6
+export function mondayIndex(dateStr: string): number {
+  const dow = new Date(dateStr + 'T12:00:00').getDay();
+  return (dow + 6) % 7;
+}
+
+export const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
 export function formatDateRu(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', {
     weekday: 'long', day: 'numeric', month: 'long',

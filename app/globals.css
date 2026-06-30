@@ -359,6 +359,59 @@ textarea { min-height: 84px; line-height: 1.6; }
 .empty-title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
 .empty p { font-size: 13.5px; color: var(--text-3); max-width: 260px; margin: 0 auto; line-height: 1.5; }
 
+/* ───────────────── Stats ───────────────── */
+.metrics-4 { grid-template-columns: 1fr 1fr; }
+.metric-ico { margin-bottom: 8px; }
+.metric-ico svg { width: 16px; height: 16px; }
+
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+
+/* Bars */
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 150px; }
+.bar-col { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.bar-track { width: 100%; flex: 1; display: flex; align-items: flex-end; justify-content: center; }
+.bar { width: 100%; max-width: 24px; background: var(--accent); border-radius: 5px 5px 2px 2px; min-height: 3px; transition: height 0.4s var(--ease); }
+.bar-col:hover .bar { background: var(--accent-hover); }
+.bar-lbl { font-size: 10px; color: var(--text-3); margin-top: 7px; }
+
+/* Donut */
+.donut-card { display: flex; align-items: center; gap: 20px; }
+.donut { flex-shrink: 0; }
+.donut-c1 { fill: var(--text); font-size: 19px; font-weight: 600; font-family: var(--font); }
+.donut-c2 { fill: var(--text-3); font-size: 11px; font-family: var(--font); }
+.legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend-name { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.legend-val { margin-left: auto; color: var(--text); font-weight: 500; flex-shrink: 0; }
+@media (max-width: 460px) { .donut-card { flex-direction: column; } .legend { width: 100%; } }
+
+/* Heatmap */
+.heat-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heat-inner { display: inline-block; }
+.heat-months { display: grid; gap: 3px; margin-bottom: 5px; }
+.heat-month { font-size: 10px; color: var(--text-3); grid-row: 1; }
+.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 13px); gap: 3px; }
+.heat-cell { width: 13px; height: 13px; border-radius: 3px; background: var(--surface-3); }
+.heat-cell.l1 { background: color-mix(in srgb, var(--accent) 32%, var(--surface-3)); }
+.heat-cell.l2 { background: color-mix(in srgb, var(--accent) 55%, var(--surface-2)); }
+.heat-cell.l3 { background: color-mix(in srgb, var(--accent) 78%, var(--surface)); }
+.heat-cell.l4 { background: var(--accent); }
+.heat-cell.future { background: transparent; }
+.heat-legend { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 12px; font-size: 11px; color: var(--text-3); }
+.heat-legend .heat-cell { width: 11px; height: 11px; }
+
+/* Top categories */
+.cat-list { display: flex; flex-direction: column; gap: 14px; }
+.cat-row { display: flex; align-items: center; gap: 12px; }
+.cat-icon { font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 9px; flex-shrink: 0; line-height: 1; }
+.cat-body { flex: 1; min-width: 0; }
+.cat-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cat-name { font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-val { font-size: 12.5px; color: var(--text-2); flex-shrink: 0; }
+.cat-bar-track { height: 7px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.cat-bar { height: 100%; border-radius: 4px; transition: width 0.4s var(--ease); }
+
 /* Offline */
 .offline-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-2); padding: 20px; text-align: center; }
 .offline-page svg { width: 38px; height: 38px; color: var(--text-3); }

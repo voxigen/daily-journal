@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig } from 'lucide-react';
+import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig, Settings } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 type Props = { children: React.ReactNode; title?: string; subtitle?: string };
@@ -40,6 +40,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
           ))}
         </nav>
         <div className="sidebar-foot">
+          <button className={`side-link${pathname === '/settings' ? ' active' : ''}`} onClick={() => router.push('/settings')}><Settings /> Настройки</button>
           <button className="side-link" onClick={logout}><LogOut /> Выйти</button>
         </div>
       </aside>
@@ -56,6 +57,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
           </div>
           <div className="topbar-actions">
             <ThemeToggle />
+            <button className="icon-btn" onClick={() => router.push('/settings')} aria-label="Настройки"><Settings className="icon" /></button>
             <button className="icon-btn" onClick={logout} aria-label="Выйти"><LogOut className="icon" /></button>
           </div>
         </header>

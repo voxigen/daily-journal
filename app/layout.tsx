@@ -26,8 +26,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// Resolve theme before first paint to avoid a flash of the wrong theme.
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`;
+// Resolve theme/accent/background before first paint to avoid a flash.
+const themeScript = `(function(){try{var r=document.documentElement;var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}r.dataset.theme=t;r.style.colorScheme=t;r.dataset.accent=localStorage.getItem('accent')||'indigo';r.dataset.bg=localStorage.getItem('bg')||'none';}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
+        <div className="bg-anim" aria-hidden="true"><span /><span /><span /></div>
         {children}
         <script
           dangerouslySetInnerHTML={{

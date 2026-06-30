@@ -31,6 +31,13 @@ export function mondayIndex(dateStr: string): number {
 
 export const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
+export const MAX_TASK_MINUTES = 15 * 60; // лимит на одно дело — 15 часов
+
+export function uid(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 export function formatDateRu(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', {
     weekday: 'long', day: 'numeric', month: 'long',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDuration } from '@/lib/utils';
+import { formatDuration, MAX_TASK_MINUTES } from '@/lib/utils';
 import { Clock, X } from 'lucide-react';
 
 type Template = {
@@ -27,17 +27,29 @@ type Props = {
   onClose: () => void;
 };
 
+const clamp = (n: number) => Math.max(0, Math.min(MAX_TASK_MINUTES, n));
+
 export default function AddTaskModal({ templates, initial, onSave, onClose }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     initial?.template_id ? templates.find((t) => t.id === initial.template_id) ?? null : null
   );
   const [title, setTitle] = useState(initial?.title ?? '');
   const [fieldsData, setFieldsData] = useState<Record<string, string>>(initial?.fields_data ?? {});
-  const [hours, setHours] = useState(initial?.duration_minutes ? String(Math.floor(initial.duration_minutes / 60)) : '');
-  const [mins, setMins] = useState(initial?.duration_minutes ? String(initial.duration_minutes % 60) : '');
+  const [minutes, setMinutes] = useState<number>(clamp(initial?.duration_minutes ?? 0));
   const [saving, setSaving] = useState(false);
 
-  const totalMinutes = (parseInt(hours || '0') * 60) + parseInt(mins || '0');
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const pct = (minutes / MAX_TASK_MINUTES) * 100;
+
+  function setHours(val: string) {
+    const hh = Math.max(0, Math.min(15, parseInt(val || '0')));
+    setMinutes(clamp(hh * 60 + m));
+  }
+  function setMins(val: string) {
+    const mm = Math.max(0, Math.min(59, parseInt(val || '0')));
+    setMinutes(clamp(h * 60 + mm));
+  }
 
   async function handleSave() {
     if (!title.trim()) return;
@@ -49,7 +61,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
       template_icon: selectedTemplate?.icon,
       title: title.trim(),
       fields_data: fieldsData,
-      duration_minutes: totalMinutes || undefined,
+      duration_minutes: minutes || undefined,
     });
     setSaving(false);
     onClose();
@@ -90,7 +102,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
 
           <div className="field">
             <label>Что сделал</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Опиши выполненное дело" autoFocus />
+            <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Опиши выполненное дело" autoFocus />
           </div>
 
           {selectedTemplate?.fields.map((f) => (
@@ -104,21 +116,35 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
             </div>
           ))}
 
+          {/* Time spent */}
           <div className="field">
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Clock className="icon-sm" /> Затраченное время
             </label>
-            <div className="time-row">
+            <div className="slider-readout">
+              {minutes > 0 ? formatDuration(minutes) : <span className="muted">не указано</span>}
+            </div>
+            <input
+              className="range"
+              type="range"
+              min={0}
+              max={MAX_TASK_MINUTES}
+              step={5}
+              value={minutes}
+              onChange={(e) => setMinutes(clamp(parseInt(e.target.value)))}
+              style={{ background: `linear-gradient(to right, var(--accent) ${pct}%, var(--surface-3) ${pct}%)` }}
+            />
+            <div className="range-ends"><span>0</span><span>15 ч</span></div>
+            <div className="time-row" style={{ marginTop: 12 }}>
               <div className="time-wrap">
-                <input type="number" min="0" max="23" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="0" />
+                <input type="number" min="0" max="15" value={h || ''} onChange={(e) => setHours(e.target.value)} placeholder="0" />
                 <span className="time-unit">ч</span>
               </div>
               <div className="time-wrap">
-                <input type="number" min="0" max="59" value={mins} onChange={(e) => setMins(e.target.value)} placeholder="0" />
+                <input type="number" min="0" max="59" value={m || ''} onChange={(e) => setMins(e.target.value)} placeholder="0" />
                 <span className="time-unit">мин</span>
               </div>
             </div>
-            {totalMinutes > 0 && <div className="time-total">Итого: {formatDuration(totalMinutes)}</div>}
           </div>
 
           <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !title.trim()}>

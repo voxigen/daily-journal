@@ -21,9 +21,13 @@ create table if not exists daily_days (
   planned_next text,
   notes        text,
   photo_urls   text[] default '{}',
+  meals        jsonb default '[]',
   created_at   timestamptz default now(),
   unique(user_id, date)
 );
+
+-- Если таблица уже создана раньше — добавь колонку питания:
+alter table daily_days add column if not exists meals jsonb default '[]';
 
 -- Записи дел (много на один день)
 create table if not exists day_tasks (

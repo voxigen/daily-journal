@@ -3,10 +3,10 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { formatDuration, compressImage } from '@/lib/utils';
+import { formatDuration, compressImage, uid } from '@/lib/utils';
 import AddTaskModal from './AddTaskModal';
 import {
-  Clock, ArrowRight, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo,
+  Clock, ArrowRight, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed,
 } from 'lucide-react';
 
 type Template = {
@@ -25,7 +25,11 @@ type Task = {
   duration_minutes?: number;
 };
 
-type DayData = { planned_next?: string; notes?: string; photo_urls?: string[] };
+type MealItem = { id: string; name: string; kcal: string };
+type Meal = { id: string; name: string; items: MealItem[] };
+type MealRaw = { name?: string; items?: { name?: string; kcal?: number | string }[] };
+
+type DayData = { planned_next?: string; notes?: string; photo_urls?: string[]; meals?: MealRaw[] };
 
 type Props = {
   userId: string;
@@ -45,6 +49,28 @@ function pathFromUrl(url: string): string | null {
   return i === -1 ? null : url.slice(i + marker.length);
 }
 
+function loadMeals(raw?: MealRaw[]): Meal[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((m) => ({
+    id: uid(),
+    name: m.name ?? '',
+    items: Array.isArray(m.items)
+      ? m.items.map((it) => ({ id: uid(), name: it.name ?? '', kcal: it.kcal != null ? String(it.kcal) : '' }))
+      : [],
+  }));
+}
+
+function serializeMeals(meals: Meal[]): MealRaw[] {
+  return meals.map((m) => ({
+    name: m.name,
+    items: m.items.map((it) => ({ name: it.name, kcal: Number(it.kcal) || 0 })),
+  }));
+}
+
+function mealKcal(m: Meal): number {
+  return m.items.reduce((s, it) => s + (Number(it.kcal) || 0), 0);
+}
+
 export default function DayView({
   userId, date, initialTasks, initialDay, plannedFromYesterday, templates, backHref,
 }: Props) {
@@ -52,6 +78,7 @@ export default function DayView({
   const [plannedNext, setPlannedNext] = useState(initialDay?.planned_next ?? '');
   const [notes, setNotes] = useState(initialDay?.notes ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(initialDay?.photo_urls ?? []);
+  const [meals, setMeals] = useState<Meal[]>(() => loadMeals(initialDay?.meals));
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [dayStatus, setDayStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -61,6 +88,7 @@ export default function DayView({
   const plannedRef = useRef(plannedNext); plannedRef.current = plannedNext;
   const notesRef = useRef(notes); notesRef.current = notes;
   const photosRef = useRef(photoUrls); photosRef.current = photoUrls;
+  const mealsRef = useRef(meals); mealsRef.current = meals;
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -70,7 +98,13 @@ export default function DayView({
   async function saveDay(showStatus = true) {
     if (showStatus) setDayStatus('saving');
     await supabase.from('daily_days').upsert(
-      { user_id: userId, date, planned_next: plannedRef.current, notes: notesRef.current, photo_urls: photosRef.current },
+      {
+        user_id: userId, date,
+        planned_next: plannedRef.current,
+        notes: notesRef.current,
+        photo_urls: photosRef.current,
+        meals: serializeMeals(mealsRef.current),
+      },
       { onConflict: 'user_id,date' }
     );
     if (showStatus) {
@@ -84,22 +118,49 @@ export default function DayView({
     saveTimer.current = setTimeout(() => saveDay(false), 1500);
   }
 
+  // ── Tasks ──
   async function handleAddTask(taskData: Omit<Task, 'id'>) {
     const { data, error } = await supabase.from('day_tasks').insert({ ...taskData, user_id: userId, date }).select().single();
     if (!error && data) setTasks((p) => [...p, data]);
   }
-
   async function handleEditTask(taskData: Omit<Task, 'id'>) {
     if (!editingTask) return;
     const { data, error } = await supabase.from('day_tasks').update(taskData).eq('id', editingTask.id).select().single();
     if (!error && data) setTasks((p) => p.map((t) => (t.id === data.id ? data : t)));
   }
-
   async function handleDeleteTask(id: string) {
     setTasks((p) => p.filter((t) => t.id !== id));
     await supabase.from('day_tasks').delete().eq('id', id);
   }
 
+  // ── Meals ──
+  function updateMeals(next: Meal[]) {
+    mealsRef.current = next;
+    setMeals(next);
+    scheduleSave();
+  }
+  function addMeal() {
+    updateMeals([...meals, { id: uid(), name: `Приём пищи ${meals.length + 1}`, items: [{ id: uid(), name: '', kcal: '' }] }]);
+  }
+  function removeMeal(id: string) {
+    updateMeals(meals.filter((m) => m.id !== id));
+  }
+  function setMealName(id: string, name: string) {
+    updateMeals(meals.map((m) => (m.id === id ? { ...m, name } : m)));
+  }
+  function addItem(mealId: string) {
+    updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: [...m.items, { id: uid(), name: '', kcal: '' }] } : m)));
+  }
+  function setItem(mealId: string, itemId: string, field: 'name' | 'kcal', val: string) {
+    updateMeals(meals.map((m) => m.id === mealId
+      ? { ...m, items: m.items.map((it) => (it.id === itemId ? { ...it, [field]: val } : it)) }
+      : m));
+  }
+  function removeItem(mealId: string, itemId: string) {
+    updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: m.items.filter((it) => it.id !== itemId) } : m)));
+  }
+
+  // ── Photos ──
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -119,7 +180,6 @@ export default function DayView({
       if (fileRef.current) fileRef.current.value = '';
     }
   }
-
   async function handleDeletePhoto(url: string) {
     const next = photosRef.current.filter((u) => u !== url);
     photosRef.current = next;
@@ -130,6 +190,7 @@ export default function DayView({
   }
 
   const totalMinutes = tasks.reduce((s, t) => s + (t.duration_minutes ?? 0), 0);
+  const totalKcal = meals.reduce((s, m) => s + mealKcal(m), 0);
 
   return (
     <>
@@ -159,6 +220,7 @@ export default function DayView({
         </div>
       )}
 
+      {/* Tasks */}
       <div className="section">
         <div className="section-head">
           <span className="section-label"><ListTodo /> Выполненные дела</span>
@@ -203,6 +265,62 @@ export default function DayView({
         </div>
       </div>
 
+      {/* Meals */}
+      <div className="section">
+        <div className="section-head">
+          <span className="section-label"><UtensilsCrossed /> Питание</span>
+          {totalKcal > 0 && <span className="section-aside">{totalKcal} ккал</span>}
+        </div>
+
+        {meals.map((m, mi) => (
+          <div className="meal" key={m.id}>
+            <div className="meal-head">
+              <input
+                className="meal-name"
+                value={m.name}
+                maxLength={60}
+                placeholder={`Приём пищи ${mi + 1}`}
+                onChange={(e) => setMealName(m.id, e.target.value)}
+              />
+              {mealKcal(m) > 0 && <span className="meal-kcal">{mealKcal(m)} ккал</span>}
+              <button className="meal-del" onClick={() => removeMeal(m.id)} aria-label="Удалить приём"><X /></button>
+            </div>
+            <div className="meal-items">
+              {m.items.map((it) => (
+                <div className="meal-item" key={it.id}>
+                  <input
+                    className="mi-name"
+                    value={it.name}
+                    maxLength={80}
+                    placeholder="Что съел"
+                    onChange={(e) => setItem(m.id, it.id, 'name', e.target.value)}
+                  />
+                  <div className="mi-kcal-wrap">
+                    <input
+                      className="mi-kcal"
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={it.kcal}
+                      placeholder="0"
+                      onChange={(e) => setItem(m.id, it.id, 'kcal', e.target.value)}
+                    />
+                    <span className="mi-unit">ккал</span>
+                  </div>
+                  <button className="mi-del" onClick={() => removeItem(m.id, it.id)} aria-label="Удалить продукт"><X /></button>
+                </div>
+              ))}
+            </div>
+            <button className="meal-add-item" onClick={() => addItem(m.id)}><Plus /> продукт</button>
+          </div>
+        ))}
+
+        <button className="add-row add-row-solo" onClick={addMeal}>
+          <Plus /> Добавить приём пищи
+        </button>
+      </div>
+
+      {/* Photos */}
       <div className="section">
         <div className="section-head">
           <span className="section-label"><ImagePlus /> Фото дня</span>
@@ -222,6 +340,7 @@ export default function DayView({
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
       </div>
 
+      {/* Plans */}
       <div className="section">
         <div className="section-head">
           <span className="section-label"><ArrowRight /> Планы на завтра</span>
@@ -235,6 +354,7 @@ export default function DayView({
         />
       </div>
 
+      {/* Notes */}
       <div className="section">
         <div className="section-head">
           <span className="section-label"><StickyNote /> Заметки дня</span>
@@ -250,7 +370,7 @@ export default function DayView({
 
       <div className="save-row">
         <button className="btn btn-secondary" onClick={() => saveDay(true)} disabled={dayStatus === 'saving'}>
-          {dayStatus === 'saving' ? 'Сохраняю…' : 'Сохранить планы и заметки'}
+          {dayStatus === 'saving' ? 'Сохраняю…' : 'Сохранить день'}
         </button>
         {dayStatus === 'saved' && <span className="save-hint ok">Сохранено</span>}
       </div>

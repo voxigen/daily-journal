@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import TemplateModal from './TemplateModal';
 import AppShell from './AppShell';
-import { Plus, Pencil, Trash2, LayoutGrid } from 'lucide-react';
+import { Plus, Pencil, Trash2, LayoutGrid, ChevronRight } from 'lucide-react';
 
 type Field = { name: string; placeholder: string; type: string };
 type Template = { id: string; name: string; color: string; icon: string; fields: Field[] };
@@ -14,6 +15,7 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Template | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   async function handleCreate(data: Omit<Template, 'id'>) {
     const { data: t } = await supabase.from('templates').insert({ ...data, user_id: userId }).select().single();
@@ -50,7 +52,7 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
       ) : (
         <div className="tpl-list">
           {templates.map((t) => (
-            <div key={t.id} className="tpl-row">
+            <div key={t.id} className="tpl-row clickable" onClick={() => router.push(`/templates/${t.id}`)}>
               <div className="tpl-row-icon">{t.icon}</div>
               <div className="tpl-row-info">
                 <div className="tpl-row-name" style={{ color: t.color }}>{t.name}</div>
@@ -58,9 +60,10 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
                   {t.fields.length ? t.fields.map((f) => f.name).join(' · ') : 'Без дополнительных полей'}
                 </div>
               </div>
-              <div className="tpl-row-actions">
+              <div className="tpl-row-actions" onClick={(e) => e.stopPropagation()}>
                 <button className="icon-btn" onClick={() => { setEditing(t); setShowModal(true); }} aria-label="Изменить"><Pencil className="icon-sm" /></button>
                 <button className="icon-btn danger" onClick={() => handleDelete(t.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
+                <ChevronRight className="icon-sm tpl-row-chevron" />
               </div>
             </div>
           ))}

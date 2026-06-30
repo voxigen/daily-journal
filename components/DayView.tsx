@@ -1,142 +1,275 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import AppShell from './AppShell';
+import { formatDuration, compressImage } from '@/lib/utils';
+import AddTaskModal from './AddTaskModal';
+
+type Template = {
+  id: string; name: string; color: string; icon: string;
+  fields: { name: string; placeholder: string; type: string }[];
+};
+
+type Task = {
+  id: string;
+  template_id?: string;
+  template_name?: string;
+  template_color?: string;
+  template_icon?: string;
+  title: string;
+  fields_data?: Record<string, string>;
+  duration_minutes?: number;
+};
+
+type DayData = {
+  planned_next?: string;
+  notes?: string;
+  photo_urls?: string[];
+};
 
 type Props = {
   userId: string;
   date: string;
-  initial: { done?: string; planned_next?: string; notes?: string } | null;
+  displayDate: string;
+  initialTasks: Task[];
+  initialDay: DayData | null;
   plannedFromYesterday: string | null;
+  templates: Template[];
 };
 
-export default function DayView({ userId, date, initial, plannedFromYesterday }: Props) {
-  const [done, setDone] = useState(initial?.done ?? '');
-  const [plannedNext, setPlannedNext] = useState(initial?.planned_next ?? '');
-  const [notes, setNotes] = useState(initial?.notes ?? '');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export default function DayView({
+  userId, date, displayDate, initialTasks, initialDay, plannedFromYesterday, templates,
+}: Props) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [plannedNext, setPlannedNext] = useState(initialDay?.planned_next ?? '');
+  const [notes, setNotes] = useState(initialDay?.notes ?? '');
+  const [photoUrls, setPhotoUrls] = useState<string[]>(initialDay?.photo_urls ?? []);
+  const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [savingDay, setSavingDay] = useState(false);
+  const [savedDay, setSavedDay] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const planTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
-  const router = useRouter();
 
-  const save = useCallback(
-    async (d: string, pn: string, n: string) => {
-      setSaveStatus('saving');
-      await supabase.from('daily_entries').upsert(
-        { user_id: userId, date, done: d, planned_next: pn, notes: n },
+  // ── Tasks ──
+
+  async function handleAddTask(taskData: Omit<Task, 'id'>) {
+    const { data, error } = await supabase
+      .from('day_tasks')
+      .insert({ ...taskData, user_id: userId, date })
+      .select()
+      .single();
+    if (!error && data) setTasks((prev) => [...prev, data]);
+  }
+
+  async function handleEditTask(taskData: Omit<Task, 'id'>) {
+    if (!editingTask) return;
+    const { data, error } = await supabase
+      .from('day_tasks')
+      .update(taskData)
+      .eq('id', editingTask.id)
+      .select()
+      .single();
+    if (!error && data) setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+  }
+
+  async function handleDeleteTask(id: string) {
+    await supabase.from('day_tasks').delete().eq('id', id);
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  // ── Day (planned / notes) ──
+
+  function scheduleSaveDay(pn: string, n: string) {
+    if (planTimer.current) clearTimeout(planTimer.current);
+    planTimer.current = setTimeout(() => saveDay(pn, n), 1500);
+  }
+
+  async function saveDay(pn: string, n: string) {
+    setSavingDay(true);
+    await supabase.from('daily_days').upsert(
+      { user_id: userId, date, planned_next: pn, notes: n, photo_urls: photoUrls },
+      { onConflict: 'user_id,date' }
+    );
+    setSavingDay(false);
+    setSavedDay(true);
+    setTimeout(() => setSavedDay(false), 2000);
+  }
+
+  // ── Photos ──
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const compressed = await compressImage(file);
+      const path = `${userId}/${date}/${Date.now()}.jpg`;
+      const { error } = await supabase.storage.from('day-photos').upload(path, compressed);
+      if (error) { alert('Ошибка загрузки фото: ' + error.message); return; }
+      const { data: { publicUrl } } = supabase.storage.from('day-photos').getPublicUrl(path);
+      const newUrls = [...photoUrls, publicUrl];
+      setPhotoUrls(newUrls);
+      await supabase.from('daily_days').upsert(
+        { user_id: userId, date, planned_next: plannedNext, notes, photo_urls: newUrls },
         { onConflict: 'user_id,date' }
       );
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    },
-    [supabase, userId, date]
-  );
-
-  function scheduleAutoSave(d: string, pn: string, n: string) {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => save(d, pn, n), 1500);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   }
 
-  function handleDone(v: string) {
-    setDone(v);
-    scheduleAutoSave(v, plannedNext, notes);
-  }
-  function handlePlanned(v: string) {
-    setPlannedNext(v);
-    scheduleAutoSave(done, v, notes);
-  }
-  function handleNotes(v: string) {
-    setNotes(v);
-    scheduleAutoSave(done, plannedNext, v);
+  async function handleDeletePhoto(url: string) {
+    const newUrls = photoUrls.filter((u) => u !== url);
+    setPhotoUrls(newUrls);
+    await supabase.from('daily_days').upsert(
+      { user_id: userId, date, planned_next: plannedNext, notes, photo_urls: newUrls },
+      { onConflict: 'user_id,date' }
+    );
   }
 
-  const displayDate = new Date(date + 'T12:00:00').toLocaleDateString('ru-RU', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
+  const totalMinutesToday = tasks.reduce((s, t) => s + (t.duration_minutes ?? 0), 0);
 
   return (
-    <AppShell activeTab="today" date={displayDate}>
+    <>
       <div className="day-page">
-        {/* Что планировал (из вчера) */}
-        <div className="section-card">
-          <div className="section-header">
-            <span className="section-dot dot-plan" />
-            <span className="section-title">Планировал на сегодня</span>
-            <span className="section-from">← вчера</span>
-          </div>
-          {plannedFromYesterday ? (
-            <div className="planned-preview">{plannedFromYesterday}</div>
-          ) : (
-            <div className="planned-preview planned-empty">Вчера ничего не запланировано</div>
-          )}
-        </div>
 
-        {/* Что сделал */}
-        <div className="section-card">
-          <div className="section-header">
-            <span className="section-dot dot-done" />
-            <span className="section-title">Что сделал сегодня</span>
+        {/* Stats bar */}
+        <div className="stats-bar" style={{ marginBottom: 20 }}>
+          <div className="stat-item">
+            <div className="stat-val">{tasks.length}</div>
+            <div className="stat-lbl">дел сделано</div>
           </div>
-          <div className="field" style={{ margin: 0 }}>
-            <textarea
-              value={done}
-              onChange={(e) => handleDone(e.target.value)}
-              placeholder="Опиши что удалось сделать сегодня..."
-              rows={5}
-            />
+          <div className="stat-item">
+            <div className="stat-val">{totalMinutesToday ? formatDuration(totalMinutesToday) : '—'}</div>
+            <div className="stat-lbl">времени потрачено</div>
           </div>
         </div>
 
-        {/* Планы на завтра */}
-        <div className="section-card">
-          <div className="section-header">
-            <span className="section-dot dot-plan" />
-            <span className="section-title">Планы на завтра</span>
+        {/* Planned from yesterday */}
+        {plannedFromYesterday && (
+          <div className="day-section">
+            <div className="section-label">Планировал на сегодня</div>
+            <div className="planned-box">
+              <div className="planned-box-label">← со вчера</div>
+              <div className="planned-box-text">{plannedFromYesterday}</div>
+            </div>
           </div>
-          <div className="field" style={{ margin: 0 }}>
-            <textarea
-              value={plannedNext}
-              onChange={(e) => handlePlanned(e.target.value)}
-              placeholder="Что планируешь сделать завтра?"
-              rows={4}
-            />
+        )}
+
+        {/* Tasks */}
+        <div className="day-section">
+          <div className="section-label">Выполненные дела — {displayDate}</div>
+          <div className="tasks-list">
+            {tasks.map((task) => {
+              const color = task.template_color ?? 'var(--accent)';
+              const fields = task.fields_data ? Object.entries(task.fields_data).filter(([, v]) => v) : [];
+              return (
+                <div
+                  key={task.id}
+                  className="task-card"
+                  style={{ '--card-color': color, '--badge-bg': `${color}22`, '--badge-color': color } as React.CSSProperties}
+                >
+                  <div className="task-card-header">
+                    {task.template_name && (
+                      <span className="task-badge">
+                        {task.template_icon} {task.template_name}
+                      </span>
+                    )}
+                    <span className="task-title">{task.title}</span>
+                    <div className="task-actions">
+                      <button className="task-action-btn" onClick={() => { setEditingTask(task); setShowModal(true); }}>✏️</button>
+                      <button className="task-action-btn delete" onClick={() => handleDeleteTask(task.id)}>🗑</button>
+                    </div>
+                  </div>
+                  {fields.length > 0 && (
+                    <div className="task-fields">
+                      {fields.map(([k, v]) => (
+                        <div key={k} className="task-field-item">
+                          <span className="task-field-name">{k}:</span>{v}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {task.duration_minutes ? (
+                    <div className="task-meta">
+                      <span className="task-time">⏱ {formatDuration(task.duration_minutes)}</span>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            <button className="add-task-btn" onClick={() => { setEditingTask(null); setShowModal(true); }}>
+              + Добавить дело
+            </button>
           </div>
         </div>
 
-        {/* Заметки */}
-        <div className="section-card">
-          <div className="section-header">
-            <span className="section-dot dot-note" />
-            <span className="section-title">Дополнительные заметки</span>
+        {/* Photos */}
+        <div className="day-section">
+          <div className="section-label">Фото дня</div>
+          <div className="photo-grid">
+            {photoUrls.map((url) => (
+              <div key={url} className="photo-thumb">
+                <img src={url} alt="" />
+                <button className="photo-delete" onClick={() => handleDeletePhoto(url)}>✕</button>
+              </div>
+            ))}
+            <button className="photo-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploadingPhoto}>
+              <span>{uploadingPhoto ? '⏳' : '📷'}</span>
+              {uploadingPhoto ? 'Загрузка...' : 'Фото'}
+            </button>
           </div>
-          <div className="field" style={{ margin: 0 }}>
-            <textarea
-              value={notes}
-              onChange={(e) => handleNotes(e.target.value)}
-              placeholder="Мысли, наблюдения, важные детали..."
-              rows={4}
-            />
-          </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
         </div>
 
-        <div style={{ height: 80 }} />
-      </div>
+        {/* Plans for tomorrow */}
+        <div className="day-section">
+          <div className="section-label">Планы на завтра</div>
+          <textarea
+            className="day-textarea"
+            value={plannedNext}
+            onChange={(e) => { setPlannedNext(e.target.value); scheduleSaveDay(e.target.value, notes); }}
+            placeholder="Что планируешь сделать завтра?"
+            rows={4}
+          />
+        </div>
 
-      <div className="save-bar">
+        {/* Notes */}
+        <div className="day-section">
+          <div className="section-label">Заметки дня</div>
+          <textarea
+            className="day-textarea"
+            value={notes}
+            onChange={(e) => { setNotes(e.target.value); scheduleSaveDay(plannedNext, e.target.value); }}
+            placeholder="Мысли, наблюдения, важные детали..."
+            rows={3}
+          />
+        </div>
+
         <button
           className="btn btn-primary"
-          style={{ maxWidth: 160 }}
-          onClick={() => save(done, plannedNext, notes)}
-          disabled={saveStatus === 'saving'}
+          onClick={() => saveDay(plannedNext, notes)}
+          disabled={savingDay}
+          style={{ marginTop: 4 }}
         >
-          {saveStatus === 'saving' ? 'Сохраняю...' : 'Сохранить'}
+          {savingDay ? 'Сохраняю...' : savedDay ? '✓ Сохранено' : 'Сохранить планы и заметки'}
         </button>
-        <span className={`save-status${saveStatus === 'saved' ? ' saved' : ''}`}>
-          {saveStatus === 'saved' ? '✓ Сохранено' : saveStatus === 'saving' ? '' : ''}
-        </span>
+
       </div>
-    </AppShell>
+
+      {showModal && (
+        <AddTaskModal
+          templates={templates}
+          initial={editingTask ?? undefined}
+          onSave={editingTask ? handleEditTask : handleAddTask}
+          onClose={() => { setShowModal(false); setEditingTask(null); }}
+        />
+      )}
+    </>
   );
 }

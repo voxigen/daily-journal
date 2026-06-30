@@ -1,30 +1,56 @@
 -- Запусти этот SQL в Supabase > SQL Editor
+-- ВНИМАНИЕ: сначала удали старую таблицу если уже создавал
+drop table if exists daily_entries cascade;
 
-create table if not exists daily_entries (
-  id          uuid default gen_random_uuid() primary key,
-  user_id     uuid references auth.users not null,
-  date        date not null,
-  done        text,
+-- Шаблоны дел
+create table if not exists templates (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users not null,
+  name       text not null,
+  color      text default '#6366f1',
+  icon       text default '📋',
+  fields     jsonb default '[]', -- [{name, placeholder, type}]
+  created_at timestamptz default now()
+);
+
+-- Дни
+create table if not exists daily_days (
+  id           uuid default gen_random_uuid() primary key,
+  user_id      uuid references auth.users not null,
+  date         date not null,
   planned_next text,
-  notes       text,
-  created_at  timestamptz default now(),
-  updated_at  timestamptz default now(),
+  notes        text,
+  photo_urls   text[] default '{}',
+  created_at   timestamptz default now(),
   unique(user_id, date)
 );
 
--- Обновляет updated_at при каждом upsert
-create or replace function update_updated_at()
-returns trigger language plpgsql as $$
-begin new.updated_at = now(); return new; end;
-$$;
+-- Записи дел (много на один день)
+create table if not exists day_tasks (
+  id               uuid default gen_random_uuid() primary key,
+  user_id          uuid references auth.users not null,
+  date             date not null,
+  template_id      uuid references templates(id) on delete set null,
+  template_name    text,
+  template_color   text default '#6366f1',
+  template_icon    text default '📋',
+  title            text not null,
+  fields_data      jsonb default '{}',
+  duration_minutes int,
+  created_at       timestamptz default now()
+);
 
-create trigger daily_entries_updated_at
-before update on daily_entries
-for each row execute procedure update_updated_at();
+-- RLS
+alter table templates   enable row level security;
+alter table daily_days  enable row level security;
+alter table day_tasks   enable row level security;
 
--- RLS: каждый видит только свои записи
-alter table daily_entries enable row level security;
+create policy "own templates"  on templates  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own days"       on daily_days using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own tasks"      on day_tasks  using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy "Own entries only" on daily_entries
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- Storage bucket для фото (выполни отдельно или создай вручную)
+-- insert into storage.buckets (id, name, public) values ('day-photos', 'day-photos', false);
+-- create policy "own photos upload" on storage.objects for insert with check (bucket_id = 'day-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+-- create policy "own photos read"   on storage.objects for select using (bucket_id = 'day-photos' and auth.uid()::text = (storage.foldername(name))[1]);
+-- create policy "own photos delete" on storage.objects for delete using (bucket_id = 'day-photos' and auth.uid()::text = (storage.foldername(name))[1]);

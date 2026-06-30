@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import TemplateModal from './TemplateModal';
 import AppShell from './AppShell';
+import { Plus, Pencil, Trash2, LayoutGrid } from 'lucide-react';
 
 type Field = { name: string; placeholder: string; type: string };
 type Template = { id: string; name: string; color: string; icon: string; fields: Field[] };
@@ -26,40 +27,40 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Удалить шаблон?')) return;
-    await supabase.from('templates').delete().eq('id', id);
+    if (!confirm('Удалить шаблон? Уже добавленные дела останутся.')) return;
     setTemplates(templates.filter((t) => t.id !== id));
+    await supabase.from('templates').delete().eq('id', id);
   }
 
   return (
     <AppShell>
       <div className="templates-page">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--text3)' }}>{templates.length} шаблонов</div>
-          <button className="btn btn-primary" style={{ width: 'auto', padding: '10px 18px' }} onClick={() => { setEditing(null); setShowModal(true); }}>
-            + Новый шаблон
+        <div className="page-head">
+          <span className="page-head-count">{templates.length} шаблонов</span>
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditing(null); setShowModal(true); }}>
+            <Plus className="icon-sm" /> Новый
           </button>
         </div>
 
         {templates.length === 0 && (
           <div className="empty">
-            <div className="empty-icon">🗂️</div>
-            <p>Создай первый шаблон, чтобы быстро добавлять дела</p>
+            <div className="empty-icon"><LayoutGrid /></div>
+            <p>Создай первый шаблон, чтобы быстро добавлять однотипные дела</p>
           </div>
         )}
 
         {templates.map((t) => (
           <div key={t.id} className="template-card">
-            <div className="template-card-icon" style={{ borderColor: t.color }}>{t.icon}</div>
+            <div className="template-card-icon">{t.icon}</div>
             <div className="template-card-info">
               <div className="template-card-name" style={{ color: t.color }}>{t.name}</div>
               <div className="template-card-fields">
-                {t.fields.length ? t.fields.map((f) => f.name).join(' · ') : 'Без полей'}
+                {t.fields.length ? t.fields.map((f) => f.name).join(' · ') : 'Без дополнительных полей'}
               </div>
             </div>
             <div className="template-card-actions">
-              <button className="btn-icon" onClick={() => { setEditing(t); setShowModal(true); }}>✏️</button>
-              <button className="btn-icon" style={{ color: 'var(--red)' }} onClick={() => handleDelete(t.id)}>🗑</button>
+              <button className="btn-icon" onClick={() => { setEditing(t); setShowModal(true); }} aria-label="Изменить"><Pencil className="icon-sm" /></button>
+              <button className="btn-icon danger" onClick={() => handleDelete(t.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
             </div>
           </div>
         ))}

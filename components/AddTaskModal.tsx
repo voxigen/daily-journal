@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { formatDuration } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 type Template = {
   id: string;
@@ -64,7 +65,6 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
         <div className="sheet-title">{initial ? 'Редактировать дело' : 'Новое дело'}</div>
         <div className="sheet-body">
 
-          {/* Template picker */}
           {templates.length > 0 && (
             <div className="field">
               <label>Шаблон (необязательно)</label>
@@ -72,10 +72,12 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
                 {templates.map((t) => (
                   <button
                     key={t.id}
+                    type="button"
                     className={`template-pick-btn${selectedTemplate?.id === t.id ? ' selected' : ''}`}
                     onClick={() => {
-                      setSelectedTemplate(selectedTemplate?.id === t.id ? null : t);
-                      setFieldsData({});
+                      const isSame = selectedTemplate?.id === t.id;
+                      setSelectedTemplate(isSame ? null : t);
+                      if (!isSame) setFieldsData(initial?.template_id === t.id ? (initial.fields_data ?? {}) : {});
                     }}
                   >
                     <span className="template-pick-icon">{t.icon}</span>
@@ -86,18 +88,16 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
             </div>
           )}
 
-          {/* Title */}
           <div className="field">
             <label>Что сделал *</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Опиши выполненное дело..."
+              placeholder="Опиши выполненное дело…"
               autoFocus
             />
           </div>
 
-          {/* Template fields */}
           {selectedTemplate?.fields.map((f) => (
             <div key={f.name} className="field">
               <label>{f.name}</label>
@@ -119,47 +119,25 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
             </div>
           ))}
 
-          {/* Time spent */}
           <div className="field">
-            <label>⏱ Затраченное время</label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Clock className="icon-sm" /> Затраченное время
+            </label>
             <div className="time-row">
               <div className="time-input-wrap">
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={hours}
-                  onChange={(e) => setHours(e.target.value)}
-                  placeholder="0"
-                />
+                <input type="number" min="0" max="23" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="0" />
                 <span className="time-unit">ч</span>
               </div>
               <div className="time-input-wrap">
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={mins}
-                  onChange={(e) => setMins(e.target.value)}
-                  placeholder="0"
-                />
+                <input type="number" min="0" max="59" value={mins} onChange={(e) => setMins(e.target.value)} placeholder="0" />
                 <span className="time-unit">мин</span>
               </div>
             </div>
-            {totalMinutes > 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
-                Итого: {formatDuration(totalMinutes)}
-              </div>
-            )}
+            {totalMinutes > 0 && <div className="time-total">Итого: {formatDuration(totalMinutes)}</div>}
           </div>
 
-          <button
-            className="btn btn-primary"
-            style={{ marginTop: 8 }}
-            onClick={handleSave}
-            disabled={saving || !title.trim()}
-          >
-            {saving ? 'Сохраняю...' : initial ? 'Сохранить' : 'Добавить дело'}
+          <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleSave} disabled={saving || !title.trim()}>
+            {saving ? 'Сохраняю…' : initial ? 'Сохранить' : 'Добавить дело'}
           </button>
         </div>
       </div>

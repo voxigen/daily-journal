@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { NotebookPen, CalendarDays, LayoutGrid, LogOut } from 'lucide-react';
 
 type Props = { children: React.ReactNode; date?: string };
 
@@ -17,32 +18,37 @@ export default function AppShell({ children, date }: Props) {
   }
 
   const nav = [
-    { href: '/',           icon: '📓', label: 'Сегодня'  },
-    { href: '/history',    icon: '📅', label: 'История'  },
-    { href: '/templates',  icon: '🗂️', label: 'Шаблоны'  },
+    { href: '/',          Icon: NotebookPen,  label: 'Сегодня', match: (p: string) => p === '/' || p.startsWith('/day') },
+    { href: '/history',   Icon: CalendarDays, label: 'История', match: (p: string) => p === '/history' },
+    { href: '/templates', Icon: LayoutGrid,   label: 'Шаблоны', match: (p: string) => p === '/templates' },
   ];
 
   return (
     <div className="app-wrap">
       <header className="app-header">
         <div className="header-left">
-          <h1>Daily Journal</h1>
-          {date && <div className="header-date">{date}</div>}
+          <span className="header-mark"><NotebookPen /></span>
+          <div className="header-titles">
+            <h1>Daily Journal</h1>
+            {date && <div className="header-date">{date}</div>}
+          </div>
         </div>
-        <button className="logout-btn" onClick={logout}>Выйти</button>
+        <button className="logout-btn" onClick={logout} aria-label="Выйти">
+          <LogOut className="icon" />
+        </button>
       </header>
 
       <main className="app-content">{children}</main>
 
       <nav className="bottom-nav">
-        {nav.map((item) => (
+        {nav.map(({ href, Icon, label, match }) => (
           <button
-            key={item.href}
-            className={`nav-item${pathname === item.href ? ' active' : ''}`}
-            onClick={() => router.push(item.href)}
+            key={href}
+            className={`nav-item${match(pathname) ? ' active' : ''}`}
+            onClick={() => router.push(href)}
           >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-label">{item.label}</span>
+            <Icon />
+            <span className="nav-label">{label}</span>
           </button>
         ))}
       </nav>

@@ -1,11 +1,23 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Manrope, Lora } from 'next/font/google';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import './globals.css';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+const manrope = Manrope({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-manrope',
+  display: 'swap',
+});
+
+const lora = Lora({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-lora',
   display: 'swap',
 });
 
@@ -28,11 +40,11 @@ export const viewport: Viewport = {
 };
 
 // Resolve theme/accent/background before first paint to avoid a flash.
-const themeScript = `(function(){try{var r=document.documentElement;var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}r.dataset.theme=t;r.style.colorScheme=t;r.dataset.accent=localStorage.getItem('accent')||'indigo';r.dataset.bg=localStorage.getItem('bg')||'none';}catch(e){}})();`;
+const themeScript = `(function(){try{var r=document.documentElement;var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}r.dataset.theme=t;r.style.colorScheme=t;r.dataset.accent=localStorage.getItem('accent')||'indigo';r.dataset.bg=localStorage.getItem('bg')||'none';r.dataset.font=localStorage.getItem('font')||'inter';r.dataset.size=localStorage.getItem('size')||'md';}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className={inter.variable} suppressHydrationWarning>
+    <html lang="ru" className={`${inter.variable} ${manrope.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />

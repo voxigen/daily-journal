@@ -2,9 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall } from 'lucide-react';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
+
+const FONTS: { key: string; label: string; css: string }[] = [
+  { key: 'inter', label: 'Inter', css: 'var(--font-inter), sans-serif' },
+  { key: 'manrope', label: 'Manrope', css: 'var(--font-manrope), sans-serif' },
+  { key: 'lora', label: 'Serif', css: 'var(--font-lora), Georgia, serif' },
+  { key: 'mono', label: 'Моно', css: 'ui-monospace, Menlo, monospace' },
+];
+
+const SIZES: { key: string; label: string }[] = [
+  { key: 'sm', label: 'Мелкий' },
+  { key: 'md', label: 'Обычный' },
+  { key: 'lg', label: 'Крупный' },
+];
 
 const ACCENTS: { key: string; hex: string }[] = [
   { key: 'indigo', hex: '#5a63d8' },
@@ -30,12 +43,16 @@ export default function SettingsView() {
   const [theme, setThemeState] = useState<ThemeChoice>('auto');
   const [accent, setAccentState] = useState('indigo');
   const [bg, setBgState] = useState('none');
+  const [font, setFontState] = useState('inter');
+  const [size, setSizeState] = useState('md');
 
   useEffect(() => {
     const t = localStorage.getItem('theme');
     setThemeState(t === 'light' || t === 'dark' ? t : 'auto');
     setAccentState(document.documentElement.dataset.accent || 'indigo');
     setBgState(document.documentElement.dataset.bg || 'none');
+    setFontState(document.documentElement.dataset.font || 'inter');
+    setSizeState(document.documentElement.dataset.size || 'md');
   }, []);
 
   function chooseTheme(v: ThemeChoice) {
@@ -66,6 +83,18 @@ export default function SettingsView() {
     window.dispatchEvent(new Event('bgchange'));
   }
 
+  function chooseFont(key: string) {
+    setFontState(key);
+    document.documentElement.dataset.font = key;
+    localStorage.setItem('font', key);
+  }
+
+  function chooseSize(key: string) {
+    setSizeState(key);
+    document.documentElement.dataset.size = key;
+    localStorage.setItem('size', key);
+  }
+
   return (
     <AppShell title="Настройки">
       <div className="section">
@@ -79,6 +108,37 @@ export default function SettingsView() {
             ))}
           </div>
           <div className="setting-hint">«Авто» подстраивается под системную тему телефона.</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Type /> Шрифт</span></div>
+        <div className="setting-card">
+          <div className="pills">
+            {FONTS.map((f) => (
+              <button
+                key={f.key}
+                className={`pill${font === f.key ? ' sel' : ''}`}
+                style={{ fontFamily: f.css }}
+                onClick={() => chooseFont(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><ALargeSmall /> Размер интерфейса</span></div>
+        <div className="setting-card">
+          <div className="segment">
+            {SIZES.map((s) => (
+              <button key={s.key} className={size === s.key ? 'sel' : ''} onClick={() => chooseSize(s.key)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

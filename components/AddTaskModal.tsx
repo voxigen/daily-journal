@@ -25,11 +25,14 @@ type Props = {
   initial?: Task;
   onSave: (task: Omit<Task, 'id'>) => Promise<void>;
   onClose: () => void;
+  planMode?: boolean;
+  submitLabel?: string;
+  titleLabel?: string;
 };
 
 const clamp = (n: number) => Math.max(0, Math.min(MAX_TASK_MINUTES, n));
 
-export default function AddTaskModal({ templates, initial, onSave, onClose }: Props) {
+export default function AddTaskModal({ templates, initial, onSave, onClose, planMode = false, submitLabel, titleLabel }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     initial?.template_id ? templates.find((t) => t.id === initial.template_id) ?? null : null
   );
@@ -60,8 +63,8 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
       template_color: selectedTemplate?.color,
       template_icon: selectedTemplate?.icon,
       title: title.trim(),
-      fields_data: fieldsData,
-      duration_minutes: minutes || undefined,
+      fields_data: planMode ? {} : fieldsData,
+      duration_minutes: planMode ? undefined : (minutes || undefined),
     });
     setSaving(false);
     onClose();
@@ -72,7 +75,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
       <div className="sheet">
         <div className="sheet-handle" />
         <div className="sheet-head">
-          <span className="sheet-title">{initial ? 'Редактировать дело' : 'Новое дело'}</span>
+          <span className="sheet-title">{planMode ? 'Новый план' : initial ? 'Дело' : 'Новое дело'}</span>
           <button className="icon-btn" onClick={onClose} aria-label="Закрыть"><X className="icon" /></button>
         </div>
         <div className="sheet-body">
@@ -101,11 +104,11 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
           )}
 
           <div className="field">
-            <label>Что сделал</label>
-            <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Опиши выполненное дело" autoFocus />
+            <label>{titleLabel ?? (planMode ? 'Что нужно сделать' : 'Что сделал')}</label>
+            <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder={planMode ? 'Опиши задачу' : 'Опиши выполненное дело'} autoFocus />
           </div>
 
-          {selectedTemplate?.fields.map((f) => (
+          {!planMode && selectedTemplate?.fields.map((f) => (
             <div key={f.name} className="field">
               <label>{f.name}</label>
               {f.type === 'textarea' ? (
@@ -117,6 +120,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
           ))}
 
           {/* Time spent */}
+          {!planMode && (
           <div className="field">
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Clock className="icon-sm" /> Затраченное время
@@ -146,9 +150,10 @@ export default function AddTaskModal({ templates, initial, onSave, onClose }: Pr
               </div>
             </div>
           </div>
+          )}
 
           <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !title.trim()}>
-            {saving ? 'Сохраняю…' : initial ? 'Сохранить' : 'Добавить дело'}
+            {saving ? 'Сохраняю…' : submitLabel ?? (planMode ? 'Добавить в планы' : initial ? 'Сохранить' : 'Добавить дело')}
           </button>
         </div>
       </div>

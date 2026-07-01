@@ -3,10 +3,10 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { formatDuration, compressImage, uid } from '@/lib/utils';
+import { formatDuration, compressImage, uid, addDays } from '@/lib/utils';
 import AddTaskModal from './AddTaskModal';
 import {
-  Clock, ArrowRight, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed,
+  Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus,
 } from 'lucide-react';
 
 type Template = {
@@ -25,21 +25,37 @@ type Task = {
   duration_minutes?: number;
 };
 
+type Planned = {
+  id: string;
+  title: string;
+  template_id?: string;
+  template_name?: string;
+  template_color?: string;
+  template_icon?: string;
+};
+
 type MealItem = { id: string; name: string; kcal: string };
 type Meal = { id: string; name: string; items: MealItem[] };
 type MealRaw = { name?: string; items?: { name?: string; kcal?: number | string }[] };
 
-type DayData = { planned_next?: string; notes?: string; photo_urls?: string[]; meals?: MealRaw[] };
+type DayData = { notes?: string; photo_urls?: string[]; meals?: MealRaw[] };
 
 type Props = {
   userId: string;
   date: string;
   initialTasks: Task[];
   initialDay: DayData | null;
-  plannedFromYesterday: string | null;
+  initialPlannedToday: Planned[];
+  initialPlannedTomorrow: Planned[];
   templates: Template[];
   backHref?: string;
 };
+
+type ModalState =
+  | { mode: 'add' }
+  | { mode: 'edit'; task: Task }
+  | { mode: 'plan' }
+  | { mode: 'complete'; planned: Planned };
 
 const BUCKET = 'day-photos';
 
@@ -59,73 +75,57 @@ function loadMeals(raw?: MealRaw[]): Meal[] {
       : [],
   }));
 }
-
 function serializeMeals(meals: Meal[]): MealRaw[] {
-  return meals.map((m) => ({
-    name: m.name,
-    items: m.items.map((it) => ({ name: it.name, kcal: Number(it.kcal) || 0 })),
-  }));
+  return meals.map((m) => ({ name: m.name, items: m.items.map((it) => ({ name: it.name, kcal: Number(it.kcal) || 0 })) }));
 }
-
 function mealKcal(m: Meal): number {
   return m.items.reduce((s, it) => s + (Number(it.kcal) || 0), 0);
 }
 
 export default function DayView({
-  userId, date, initialTasks, initialDay, plannedFromYesterday, templates, backHref,
+  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, backHref,
 }: Props) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [plannedNext, setPlannedNext] = useState(initialDay?.planned_next ?? '');
+  const [plannedToday, setPlannedToday] = useState<Planned[]>(initialPlannedToday);
+  const [plannedTomorrow, setPlannedTomorrow] = useState<Planned[]>(initialPlannedTomorrow);
   const [notes, setNotes] = useState(initialDay?.notes ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(initialDay?.photo_urls ?? []);
   const [meals, setMeals] = useState<Meal[]>(() => loadMeals(initialDay?.meals));
-  const [showModal, setShowModal] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
   const [dayStatus, setDayStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
-  const plannedRef = useRef(plannedNext); plannedRef.current = plannedNext;
   const notesRef = useRef(notes); notesRef.current = notes;
   const photosRef = useRef(photoUrls); photosRef.current = photoUrls;
   const mealsRef = useRef(meals); mealsRef.current = meals;
-
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
+  const tomorrow = addDays(date, 1);
 
   async function saveDay(showStatus = true) {
     if (showStatus) setDayStatus('saving');
     await supabase.from('daily_days').upsert(
-      {
-        user_id: userId, date,
-        planned_next: plannedRef.current,
-        notes: notesRef.current,
-        photo_urls: photosRef.current,
-        meals: serializeMeals(mealsRef.current),
-      },
+      { user_id: userId, date, notes: notesRef.current, photo_urls: photosRef.current, meals: serializeMeals(mealsRef.current) },
       { onConflict: 'user_id,date' }
     );
-    if (showStatus) {
-      setDayStatus('saved');
-      setTimeout(() => setDayStatus('idle'), 2000);
-    }
+    if (showStatus) { setDayStatus('saved'); setTimeout(() => setDayStatus('idle'), 2000); }
   }
-
   function scheduleSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => saveDay(false), 1500);
   }
 
-  // ── Tasks ──
+  // ── Done tasks ──
   async function handleAddTask(taskData: Omit<Task, 'id'>) {
     const { data, error } = await supabase.from('day_tasks').insert({ ...taskData, user_id: userId, date }).select().single();
     if (!error && data) setTasks((p) => [...p, data]);
   }
   async function handleEditTask(taskData: Omit<Task, 'id'>) {
-    if (!editingTask) return;
-    const { data, error } = await supabase.from('day_tasks').update(taskData).eq('id', editingTask.id).select().single();
+    if (modal?.mode !== 'edit') return;
+    const { data, error } = await supabase.from('day_tasks').update(taskData).eq('id', modal.task.id).select().single();
     if (!error && data) setTasks((p) => p.map((t) => (t.id === data.id ? data : t)));
   }
   async function handleDeleteTask(id: string) {
@@ -133,32 +133,37 @@ export default function DayView({
     await supabase.from('day_tasks').delete().eq('id', id);
   }
 
+  // ── Planned ──
+  async function addPlanned(data: Omit<Task, 'id'>) {
+    const { data: row, error } = await supabase.from('planned_tasks').insert({
+      user_id: userId, date: tomorrow, title: data.title,
+      template_id: data.template_id, template_name: data.template_name,
+      template_color: data.template_color, template_icon: data.template_icon,
+    }).select().single();
+    if (!error && row) setPlannedTomorrow((p) => [...p, row]);
+  }
+  async function deletePlanned(id: string, which: 'today' | 'tomorrow') {
+    if (which === 'today') setPlannedToday((p) => p.filter((x) => x.id !== id));
+    else setPlannedTomorrow((p) => p.filter((x) => x.id !== id));
+    await supabase.from('planned_tasks').delete().eq('id', id);
+  }
+  async function completePlanned(planned: Planned, data: Omit<Task, 'id'>) {
+    const { data: row, error } = await supabase.from('day_tasks').insert({ ...data, user_id: userId, date }).select().single();
+    if (!error && row) setTasks((p) => [...p, row]);
+    setPlannedToday((p) => p.filter((x) => x.id !== planned.id));
+    await supabase.from('planned_tasks').delete().eq('id', planned.id);
+  }
+
   // ── Meals ──
-  function updateMeals(next: Meal[]) {
-    mealsRef.current = next;
-    setMeals(next);
-    scheduleSave();
-  }
-  function addMeal() {
-    updateMeals([...meals, { id: uid(), name: `Приём пищи ${meals.length + 1}`, items: [{ id: uid(), name: '', kcal: '' }] }]);
-  }
-  function removeMeal(id: string) {
-    updateMeals(meals.filter((m) => m.id !== id));
-  }
-  function setMealName(id: string, name: string) {
-    updateMeals(meals.map((m) => (m.id === id ? { ...m, name } : m)));
-  }
-  function addItem(mealId: string) {
-    updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: [...m.items, { id: uid(), name: '', kcal: '' }] } : m)));
-  }
+  function updateMeals(next: Meal[]) { mealsRef.current = next; setMeals(next); scheduleSave(); }
+  function addMeal() { updateMeals([...meals, { id: uid(), name: `Приём пищи ${meals.length + 1}`, items: [{ id: uid(), name: '', kcal: '' }] }]); }
+  function removeMeal(id: string) { updateMeals(meals.filter((m) => m.id !== id)); }
+  function setMealName(id: string, name: string) { updateMeals(meals.map((m) => (m.id === id ? { ...m, name } : m))); }
+  function addItem(mealId: string) { updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: [...m.items, { id: uid(), name: '', kcal: '' }] } : m))); }
   function setItem(mealId: string, itemId: string, field: 'name' | 'kcal', val: string) {
-    updateMeals(meals.map((m) => m.id === mealId
-      ? { ...m, items: m.items.map((it) => (it.id === itemId ? { ...it, [field]: val } : it)) }
-      : m));
+    updateMeals(meals.map((m) => m.id === mealId ? { ...m, items: m.items.map((it) => (it.id === itemId ? { ...it, [field]: val } : it)) } : m));
   }
-  function removeItem(mealId: string, itemId: string) {
-    updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: m.items.filter((it) => it.id !== itemId) } : m)));
-  }
+  function removeItem(mealId: string, itemId: string) { updateMeals(meals.map((m) => (m.id === mealId ? { ...m, items: m.items.filter((it) => it.id !== itemId) } : m))); }
 
   // ── Photos ──
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -172,8 +177,7 @@ export default function DayView({
       if (error) { alert('Не удалось загрузить фото: ' + error.message); return; }
       const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
       const next = [...photosRef.current, publicUrl];
-      photosRef.current = next;
-      setPhotoUrls(next);
+      photosRef.current = next; setPhotoUrls(next);
       await saveDay(false);
     } finally {
       setUploadingPhoto(false);
@@ -182,8 +186,7 @@ export default function DayView({
   }
   async function handleDeletePhoto(url: string) {
     const next = photosRef.current.filter((u) => u !== url);
-    photosRef.current = next;
-    setPhotoUrls(next);
+    photosRef.current = next; setPhotoUrls(next);
     const path = pathFromUrl(url);
     if (path) await supabase.storage.from(BUCKET).remove([path]);
     await saveDay(false);
@@ -192,39 +195,61 @@ export default function DayView({
   const totalMinutes = tasks.reduce((s, t) => s + (t.duration_minutes ?? 0), 0);
   const totalKcal = meals.reduce((s, m) => s + mealKcal(m), 0);
 
+  // Modal wiring
+  const modalInitial: Task | undefined =
+    modal?.mode === 'edit' ? modal.task
+    : modal?.mode === 'complete'
+      ? { id: '', title: modal.planned.title, template_id: modal.planned.template_id, template_name: modal.planned.template_name, template_color: modal.planned.template_color, template_icon: modal.planned.template_icon }
+      : undefined;
+  const modalOnSave =
+    modal?.mode === 'plan' ? addPlanned
+    : modal?.mode === 'complete' ? (d: Omit<Task, 'id'>) => completePlanned(modal.planned, d)
+    : modal?.mode === 'edit' ? handleEditTask
+    : handleAddTask;
+
+  function renderChip(p: { template_name?: string; template_color?: string; template_icon?: string }) {
+    if (!p.template_name) return null;
+    const color = p.template_color ?? 'var(--accent)';
+    return <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}>{p.template_icon} {p.template_name}</span>;
+  }
+
   return (
     <>
       {backHref && (
-        <button className="back-link" onClick={() => router.push(backHref)}>
-          <ChevronLeft /> История
-        </button>
+        <button className="back-link" onClick={() => router.push(backHref)}><ChevronLeft /> История</button>
       )}
 
       <div className="metrics">
-        <div className="metric">
-          <div className="metric-val">{tasks.length}</div>
-          <div className="metric-lbl">дел сделано</div>
-        </div>
-        <div className="metric">
-          <div className="metric-val">{totalMinutes ? formatDuration(totalMinutes) : '—'}</div>
-          <div className="metric-lbl">времени потрачено</div>
-        </div>
+        <div className="metric"><div className="metric-val">{tasks.length}</div><div className="metric-lbl">дел сделано</div></div>
+        <div className="metric"><div className="metric-val">{totalMinutes ? formatDuration(totalMinutes) : '—'}</div><div className="metric-lbl">времени потрачено</div></div>
       </div>
 
-      {plannedFromYesterday && (
+      {/* Planned for today (carried over) */}
+      {plannedToday.length > 0 && (
         <div className="section">
-          <div className="callout">
-            <div className="callout-label"><ArrowRight /> планировал на этот день</div>
-            <div className="callout-text">{plannedFromYesterday}</div>
+          <div className="section-head">
+            <span className="section-label"><ListTodo /> К выполнению</span>
+            <span className="section-aside" style={{ color: 'var(--text-3)', fontWeight: 500 }}>нажми, чтобы отметить</span>
+          </div>
+          <div className="task-list">
+            {plannedToday.map((p) => (
+              <div key={p.id} className="task-row planned clickable" onClick={() => setModal({ mode: 'complete', planned: p })}>
+                <span className="task-check" />
+                <div className="task-body">
+                  <div className="task-top"><span className="task-title">{p.title}</span>{renderChip(p)}</div>
+                </div>
+                <div className="task-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="task-action del" onClick={() => deletePlanned(p.id, 'today')} aria-label="Удалить"><Trash2 /></button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Tasks */}
+      {/* Done tasks */}
       <div className="section">
-        <div className="section-head">
-          <span className="section-label"><ListTodo /> Выполненные дела</span>
-        </div>
+        <div className="section-head"><span className="section-label"><ListTodo /> Выполненные дела</span></div>
         <div className={`task-list${tasks.length === 0 ? ' task-list-empty' : ''}`}>
           {tasks.map((task) => {
             const color = task.template_color ?? 'var(--accent)';
@@ -233,35 +258,37 @@ export default function DayView({
               <div key={task.id} className="task-row">
                 <span className="task-dot" style={{ background: color }} />
                 <div className="task-body">
-                  <div className="task-top">
-                    <span className="task-title">{task.title}</span>
-                    {task.template_name && (
-                      <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}>
-                        {task.template_icon} {task.template_name}
-                      </span>
-                    )}
-                  </div>
+                  <div className="task-top"><span className="task-title">{task.title}</span>{renderChip(task)}</div>
                   {fields.length > 0 && (
-                    <div className="task-sub">
-                      {fields.map(([k, v]) => (
-                        <span key={k} className="task-field"><b>{k}:</b> {v}</span>
-                      ))}
-                    </div>
+                    <div className="task-sub">{fields.map(([k, v]) => (<span key={k} className="task-field"><b>{k}:</b> {v}</span>))}</div>
                   )}
-                  {task.duration_minutes ? (
-                    <span className="task-time"><Clock /> {formatDuration(task.duration_minutes)}</span>
-                  ) : null}
+                  {task.duration_minutes ? <span className="task-time"><Clock /> {formatDuration(task.duration_minutes)}</span> : null}
                 </div>
                 <div className="task-actions">
-                  <button className="task-action" onClick={() => { setEditingTask(task); setShowModal(true); }} aria-label="Изменить"><Pencil /></button>
+                  <button className="task-action" onClick={() => setModal({ mode: 'edit', task })} aria-label="Изменить"><Pencil /></button>
                   <button className="task-action del" onClick={() => handleDeleteTask(task.id)} aria-label="Удалить"><Trash2 /></button>
                 </div>
               </div>
             );
           })}
-          <button className="add-row" onClick={() => { setEditingTask(null); setShowModal(true); }}>
-            <Plus /> Добавить дело
-          </button>
+          <button className="add-row" onClick={() => setModal({ mode: 'add' })}><Plus /> Добавить дело</button>
+        </div>
+      </div>
+
+      {/* Plans for tomorrow */}
+      <div className="section">
+        <div className="section-head"><span className="section-label"><CalendarPlus /> Планы на завтра</span></div>
+        <div className={`task-list${plannedTomorrow.length === 0 ? ' task-list-empty' : ''}`}>
+          {plannedTomorrow.map((p) => (
+            <div key={p.id} className="task-row">
+              <span className="task-dot" style={{ background: p.template_color ?? 'var(--accent)', opacity: 0.5 }} />
+              <div className="task-body"><div className="task-top"><span className="task-title">{p.title}</span>{renderChip(p)}</div></div>
+              <div className="task-actions">
+                <button className="task-action del" onClick={() => deletePlanned(p.id, 'tomorrow')} aria-label="Удалить"><Trash2 /></button>
+              </div>
+            </div>
+          ))}
+          <button className="add-row" onClick={() => setModal({ mode: 'plan' })}><Plus /> Добавить в планы</button>
         </div>
       </div>
 
@@ -271,40 +298,19 @@ export default function DayView({
           <span className="section-label"><UtensilsCrossed /> Питание</span>
           {totalKcal > 0 && <span className="section-aside">{totalKcal} ккал</span>}
         </div>
-
         {meals.map((m, mi) => (
           <div className="meal" key={m.id}>
             <div className="meal-head">
-              <input
-                className="meal-name"
-                value={m.name}
-                maxLength={60}
-                placeholder={`Приём пищи ${mi + 1}`}
-                onChange={(e) => setMealName(m.id, e.target.value)}
-              />
+              <input className="meal-name" value={m.name} maxLength={60} placeholder={`Приём пищи ${mi + 1}`} onChange={(e) => setMealName(m.id, e.target.value)} />
               {mealKcal(m) > 0 && <span className="meal-kcal">{mealKcal(m)} ккал</span>}
               <button className="meal-del" onClick={() => removeMeal(m.id)} aria-label="Удалить приём"><X /></button>
             </div>
             <div className="meal-items">
               {m.items.map((it) => (
                 <div className="meal-item" key={it.id}>
-                  <input
-                    className="mi-name"
-                    value={it.name}
-                    maxLength={80}
-                    placeholder="Что съел"
-                    onChange={(e) => setItem(m.id, it.id, 'name', e.target.value)}
-                  />
+                  <input className="mi-name" value={it.name} maxLength={80} placeholder="Что съел" onChange={(e) => setItem(m.id, it.id, 'name', e.target.value)} />
                   <div className="mi-kcal-wrap">
-                    <input
-                      className="mi-kcal"
-                      type="number"
-                      min="0"
-                      inputMode="numeric"
-                      value={it.kcal}
-                      placeholder="0"
-                      onChange={(e) => setItem(m.id, it.id, 'kcal', e.target.value)}
-                    />
+                    <input className="mi-kcal" type="number" min="0" inputMode="numeric" value={it.kcal} placeholder="0" onChange={(e) => setItem(m.id, it.id, 'kcal', e.target.value)} />
                     <span className="mi-unit">ккал</span>
                   </div>
                   <button className="mi-del" onClick={() => removeItem(m.id, it.id)} aria-label="Удалить продукт"><X /></button>
@@ -314,17 +320,12 @@ export default function DayView({
             <button className="meal-add-item" onClick={() => addItem(m.id)}><Plus /> продукт</button>
           </div>
         ))}
-
-        <button className="add-row add-row-solo" onClick={addMeal}>
-          <Plus /> Добавить приём пищи
-        </button>
+        <button className="add-row add-row-solo" onClick={addMeal}><Plus /> Добавить приём пищи</button>
       </div>
 
       {/* Photos */}
       <div className="section">
-        <div className="section-head">
-          <span className="section-label"><ImagePlus /> Фото дня</span>
-        </div>
+        <div className="section-head"><span className="section-label"><ImagePlus /> Фото дня</span></div>
         <div className="photo-grid">
           {photoUrls.map((url) => (
             <div key={url} className="photo-thumb" onClick={() => setLightbox(url)}>
@@ -340,32 +341,10 @@ export default function DayView({
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
       </div>
 
-      {/* Plans */}
-      <div className="section">
-        <div className="section-head">
-          <span className="section-label"><ArrowRight /> Планы на завтра</span>
-        </div>
-        <textarea
-          className="day-textarea"
-          value={plannedNext}
-          onChange={(e) => { setPlannedNext(e.target.value); scheduleSave(); }}
-          placeholder="Что планируешь сделать завтра?"
-          rows={4}
-        />
-      </div>
-
       {/* Notes */}
       <div className="section">
-        <div className="section-head">
-          <span className="section-label"><StickyNote /> Заметки дня</span>
-        </div>
-        <textarea
-          className="day-textarea"
-          value={notes}
-          onChange={(e) => { setNotes(e.target.value); scheduleSave(); }}
-          placeholder="Мысли, наблюдения, важные детали…"
-          rows={3}
-        />
+        <div className="section-head"><span className="section-label"><StickyNote /> Заметки дня</span></div>
+        <textarea className="day-textarea" value={notes} onChange={(e) => { setNotes(e.target.value); scheduleSave(); }} placeholder="Мысли, наблюдения, важные детали…" rows={3} />
       </div>
 
       <div className="save-row">
@@ -375,19 +354,20 @@ export default function DayView({
         {dayStatus === 'saved' && <span className="save-hint ok">Сохранено</span>}
       </div>
 
-      {showModal && (
+      {modal && (
         <AddTaskModal
           templates={templates}
-          initial={editingTask ?? undefined}
-          onSave={editingTask ? handleEditTask : handleAddTask}
-          onClose={() => { setShowModal(false); setEditingTask(null); }}
+          initial={modalInitial}
+          planMode={modal.mode === 'plan'}
+          submitLabel={modal.mode === 'complete' ? 'Отметить выполненным' : undefined}
+          titleLabel={modal.mode === 'complete' ? 'Что сделал' : undefined}
+          onSave={modalOnSave}
+          onClose={() => setModal(null)}
         />
       )}
 
       {lightbox && (
-        <div className="lightbox" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" />
-        </div>
+        <div className="lightbox" onClick={() => setLightbox(null)}><img src={lightbox} alt="" /></div>
       )}
     </>
   );

@@ -1,14 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
-import { formatDateRu } from '@/lib/utils';
+import { formatDateRu, addDays } from '@/lib/utils';
 import DayView from '@/components/DayView';
 import AppShell from '@/components/AppShell';
-
-function prevDateStr(date: string): string {
-  const d = new Date(date + 'T12:00:00');
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
 
 export default async function DayPage({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
@@ -18,19 +12,21 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const prev = prevDateStr(date);
+  const tomorrow = addDays(date, 1);
 
   const [
     { data: day },
-    { data: prevDay },
     { data: tasks },
+    { data: planned },
     { data: templates },
   ] = await Promise.all([
     supabase.from('daily_days').select('*').eq('user_id', user.id).eq('date', date).maybeSingle(),
-    supabase.from('daily_days').select('planned_next').eq('user_id', user.id).eq('date', prev).maybeSingle(),
     supabase.from('day_tasks').select('*').eq('user_id', user.id).eq('date', date).order('created_at'),
+    supabase.from('planned_tasks').select('*').eq('user_id', user.id).in('date', [date, tomorrow]).order('created_at'),
     supabase.from('templates').select('*').eq('user_id', user.id).order('created_at'),
   ]);
+
+  const all = planned ?? [];
 
   return (
     <AppShell title={formatDateRu(date)}>
@@ -39,7 +35,8 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
         date={date}
         initialTasks={tasks ?? []}
         initialDay={day ?? null}
-        plannedFromYesterday={prevDay?.planned_next ?? null}
+        initialPlannedToday={all.filter((p) => p.date === date)}
+        initialPlannedTomorrow={all.filter((p) => p.date === tomorrow)}
         templates={templates ?? []}
         backHref="/history"
       />

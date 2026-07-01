@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { todayStr, yesterdayStr, formatDateRu } from '@/lib/utils';
+import { todayStr, addDays, formatDateRu } from '@/lib/utils';
 import DayView from '@/components/DayView';
 import AppShell from '@/components/AppShell';
 
@@ -10,19 +10,21 @@ export default async function Home() {
   if (!user) redirect('/login');
 
   const today = todayStr();
-  const yesterday = yesterdayStr();
+  const tomorrow = addDays(today, 1);
 
   const [
     { data: todayDay },
-    { data: yesterdayDay },
     { data: tasks },
+    { data: planned },
     { data: templates },
   ] = await Promise.all([
     supabase.from('daily_days').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
-    supabase.from('daily_days').select('planned_next').eq('user_id', user.id).eq('date', yesterday).maybeSingle(),
     supabase.from('day_tasks').select('*').eq('user_id', user.id).eq('date', today).order('created_at'),
+    supabase.from('planned_tasks').select('*').eq('user_id', user.id).in('date', [today, tomorrow]).order('created_at'),
     supabase.from('templates').select('*').eq('user_id', user.id).order('created_at'),
   ]);
+
+  const all = planned ?? [];
 
   return (
     <AppShell title="Сегодня" subtitle={formatDateRu(today)}>
@@ -31,7 +33,8 @@ export default async function Home() {
         date={today}
         initialTasks={tasks ?? []}
         initialDay={todayDay ?? null}
-        plannedFromYesterday={yesterdayDay?.planned_next ?? null}
+        initialPlannedToday={all.filter((p) => p.date === today)}
+        initialPlannedTomorrow={all.filter((p) => p.date === tomorrow)}
         templates={templates ?? []}
       />
     </AppShell>

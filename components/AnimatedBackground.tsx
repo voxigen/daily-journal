@@ -39,7 +39,7 @@ export default function AnimatedBackground() {
     return <div className="bg-anim bg-aurora" aria-hidden="true"><span /><span /><span /><span /></div>;
   }
   if (bg === 'beams') {
-    return <div className="bg-anim bg-beams" aria-hidden="true"><span /><span /><span /></div>;
+    return <div className="bg-anim bg-beams" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>;
   }
   if (bg === 'grid') {
     return <div className="bg-anim bg-grid" aria-hidden="true"><span /></div>;

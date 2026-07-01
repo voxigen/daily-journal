@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2 } from 'lucide-react';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
 
@@ -42,10 +42,19 @@ const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
   { key: 'constellation', label: 'Созвездие' },
   { key: 'nebula', label: 'Туманность' },
-  { key: 'waves', label: 'Волны' },
+  { key: 'warp', label: 'Гиперпрыжок' },
+  { key: 'bokeh', label: 'Пузыри' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
   { key: 'grid', label: 'Сетка' },
+];
+
+// Experimental decorative overlay applied to the cards/tiles, separate from the block style.
+const TILE_FX: { key: string; label: string }[] = [
+  { key: 'none', label: 'Нет' },
+  { key: 'crack', label: 'Трещины' },
+  { key: 'neon', label: 'Неон' },
+  { key: 'holo', label: 'Голограмма' },
 ];
 
 // IANA zones for the day-reset boundary. 'auto' resolves to the device zone.
@@ -87,6 +96,7 @@ export default function SettingsView() {
   const [font, setFontState] = useState('inter');
   const [size, setSizeState] = useState('md');
   const [surface, setSurfaceState] = useState('solid');
+  const [tilefx, setTilefxState] = useState('none');
   const [tz, setTzState] = useState('auto');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -100,6 +110,7 @@ export default function SettingsView() {
     setFontState(document.documentElement.dataset.font || 'inter');
     setSizeState(document.documentElement.dataset.size || 'md');
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
+    setTilefxState(document.documentElement.dataset.tilefx || 'none');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);
 
@@ -148,6 +159,12 @@ export default function SettingsView() {
     setSurfaceState(key);
     document.documentElement.dataset.surface = key;
     localStorage.setItem('surface', key);
+  }
+
+  function chooseTilefx(key: string) {
+    setTilefxState(key);
+    document.documentElement.dataset.tilefx = key;
+    localStorage.setItem('tilefx', key);
   }
 
   function chooseTz(key: string) {
@@ -235,6 +252,20 @@ export default function SettingsView() {
             ))}
           </div>
           <div className="setting-hint">«Стекло» и «Матовые» лучше всего смотрятся с анимированным фоном.</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Wand2 /> Эффект плиток</span></div>
+        <div className="setting-card">
+          <div className="pills">
+            {TILE_FX.map((f) => (
+              <button key={f.key} className={`pill${tilefx === f.key ? ' sel' : ''}`} onClick={() => chooseTilefx(f.key)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="setting-hint">Экспериментально: декоративный слой поверх карточек в цвете акцента.</div>
         </div>
       </div>
 

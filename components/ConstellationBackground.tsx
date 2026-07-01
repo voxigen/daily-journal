@@ -13,7 +13,6 @@ export default function ConstellationBackground() {
     if (!ctx) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let w = 0, h = 0, raf = 0, colTimer = 0;
     let accent = '#5a63d8';
 
@@ -91,8 +90,7 @@ export default function ConstellationBackground() {
       raf = requestAnimationFrame(frame);
     }
 
-    if (reduce) { frame(performance.now()); cancelAnimationFrame(raf); }
-    else raf = requestAnimationFrame(frame);
+    raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);

@@ -55,6 +55,8 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   const pct = (minutes / MAX_TASK_MINUTES) * 100;
+  // With a template chosen, the description is optional — fall back to its name.
+  const finalTitle = title.trim() || selectedTemplate?.name || '';
 
   function setHours(val: string) {
     const hh = Math.max(0, Math.min(15, parseInt(val || '0')));
@@ -66,7 +68,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
   }
 
   async function handleSave() {
-    if (!title.trim()) return;
+    if (!finalTitle) return;
     setSaving(true);
     // Fold the index-keyed values back into a name-keyed record for storage/display.
     const named: Record<string, string> = {};
@@ -79,7 +81,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
       template_name: selectedTemplate?.name,
       template_color: selectedTemplate?.color,
       template_icon: selectedTemplate?.icon,
-      title: title.trim(),
+      title: finalTitle,
       fields_data: planMode ? {} : named,
       duration_minutes: planMode ? undefined : (minutes || undefined),
     });
@@ -122,8 +124,8 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
           )}
 
           <div className="field">
-            <label>{titleLabel ?? (planMode ? 'Что нужно сделать' : 'Что сделал')}</label>
-            <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder={planMode ? 'Опиши задачу' : 'Опиши выполненное дело'} autoFocus />
+            <label>{titleLabel ?? (planMode ? 'Что нужно сделать' : 'Что сделал')}{selectedTemplate ? ' (необязательно)' : ''}</label>
+            <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder={selectedTemplate ? selectedTemplate.name : (planMode ? 'Опиши задачу' : 'Опиши выполненное дело')} autoFocus={!selectedTemplate} />
           </div>
 
           {!planMode && selectedTemplate?.fields.map((f, i) => (
@@ -170,7 +172,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
           </div>
           )}
 
-          <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !title.trim()}>
+          <button className="btn btn-primary btn-block" style={{ marginTop: 6 }} onClick={handleSave} disabled={saving || !finalTitle}>
             {saving ? 'Сохраняю…' : submitLabel ?? (planMode ? 'Добавить в планы' : initial ? 'Сохранить' : 'Добавить дело')}
           </button>
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { nebula: 0, waves: 1 };
+const MODES: Record<string, number> = { nebula: 0 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -64,49 +64,34 @@ void main(){
   vec3 fx = vec3(0.0);
   float e = 0.0;
 
-  if (uMode < 0.5) {
-    // ── Nebula: drifting cosmic clouds + layered starfield ──
-    vec2 q = uv*1.5;
-    float tt = t*0.045;
-    float w  = fbm(q + vec2(tt, -tt));
-    float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
-    float d  = fbm(q + 2.6*vec2(w, w2));
-    d = pow(clamp(d, 0.0, 1.0), 1.4);
-    vec3 c1 = vec3(0.04, 0.05, 0.18);
-    vec3 c3 = vec3(0.95, 0.25, 0.5);
-    fx = mix(c1, uA, smoothstep(0.15, 0.6, d));
-    fx = mix(fx, c3, smoothstep(0.55, 0.95, d));
+  // ── Nebula: drifting cosmic clouds + layered starfield ──
+  vec2 q = uv*1.5;
+  float tt = t*0.045;
+  float w  = fbm(q + vec2(tt, -tt));
+  float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
+  float d  = fbm(q + 2.6*vec2(w, w2));
+  d = pow(clamp(d, 0.0, 1.0), 1.35);
+  vec3 c1 = vec3(0.04, 0.05, 0.18);
+  vec3 c3 = vec3(0.95, 0.25, 0.5);
+  fx = mix(c1, uA, smoothstep(0.10, 0.62, d));
+  fx = mix(fx, c3, smoothstep(0.50, 0.98, d));
 
-    // Stars: two static twinkling layers, one slow-drifting layer, plus rare comets.
-    float s = 0.0;
-    s += starField(uv, 20.0, 2.0, 0.86, t);
-    s += starField(uv, 34.0, 3.2, 0.93, t) * 0.8;
-    s += starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t) * 0.9;
-    float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
-    fx += vec3(0.92, 0.95, 1.0) * (s + shoot);
-    e = smoothstep(0.08, 0.85, d) + s + shoot;
-  } else {
-    // ── Waves: layered flowing light ribbons ──
-    float tt = t*0.5;
-    float acc = 0.0;
-    for (int i=0; i<5; i++){
-      float fi = float(i);
-      float yy = uv.y + 0.16*fi - 0.32;
-      float wv = 0.085*sin(uv.x*2.8 + tt + fi*1.3) + 0.05*fbm(vec2(uv.x*2.0 + fi*2.0, tt*0.45));
-      acc = max(acc, smoothstep(0.03, 0.0, abs(yy - wv)) * (0.6 + 0.09*fi));
-    }
-    vec3 bg = mix(uA, uB, clamp(uv.y + 0.5, 0.0, 1.0));
-    fx = mix(bg*0.55, bg + vec3(0.25), acc);
-    e = 0.5 + 0.5*acc;
-  }
+  // Stars: two static twinkling layers, one slow-drifting layer, plus rare comets.
+  float s = 0.0;
+  s += starField(uv, 20.0, 2.0, 0.86, t);
+  s += starField(uv, 34.0, 3.2, 0.93, t) * 0.8;
+  s += starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t) * 0.9;
+  float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
+  fx += vec3(0.92, 0.95, 1.0) * (s + shoot);
+  e = smoothstep(0.06, 0.85, d) + s + shoot;
 
   e = clamp(e, 0.0, 1.0);
   float k = uMix * (0.28 + 0.72*e);
   vec3 outc = mix(uC, fx, k);
-  // Triangular dither to break up 8-bit banding in the smooth gradients (the
-  // "contour steps" that show up in the nebula on desktop displays).
-  float dz = (hash(gl_FragCoord.xy) + hash(gl_FragCoord.xy + 17.3) - 1.0) * (1.6/255.0);
-  gl_FragColor = vec4(outc + dz, 1.0);
+  // Interleaved-gradient-noise dither — stable on mobile GPUs (no huge sin args);
+  // breaks up the 8-bit colour banding ("contour steps") in the smooth clouds.
+  float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  gl_FragColor = vec4(outc + (ign - 0.5) * (2.0/255.0), 1.0);
 }`;
 
 function hexToRgb(hex: string): [number, number, number] {

@@ -384,7 +384,6 @@ export default function DayView({
         <div className="section">
           <div className="section-head">
             <span className="section-label"><Repeat /> Повторяющиеся планы</span>
-            <span className="section-aside" style={{ color: 'var(--text-3)', fontWeight: 500 }}>появляются в «К выполнению»</span>
           </div>
           <div className={`task-list${recurring.length === 0 ? ' task-list-empty' : ''}`}>
             {recurring.map((r) => (

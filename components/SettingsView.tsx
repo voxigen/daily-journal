@@ -39,14 +39,13 @@ const ACCENTS: { key: string; hex: string }[] = [
 
 const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
-  { key: 'plasma', label: 'Плазма' },
-  { key: 'liquid', label: 'Жидкость' },
-  { key: 'flow', label: 'Поток' },
-  { key: 'vortex', label: 'Вихрь' },
-  { key: 'aurora', label: 'Сияние' },
+  { key: 'constellation', label: 'Созвездие' },
+  { key: 'aurora', label: 'Аврора' },
+  { key: 'nebula', label: 'Туманность' },
+  { key: 'silk', label: 'Шёлк' },
+  { key: 'waves', label: 'Волны' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
-  { key: 'beams', label: 'Лучи' },
   { key: 'grid', label: 'Сетка' },
 ];
 

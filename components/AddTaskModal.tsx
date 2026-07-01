@@ -32,12 +32,22 @@ type Props = {
 
 const clamp = (n: number) => Math.max(0, Math.min(MAX_TASK_MINUTES, n));
 
+// Map stored name-keyed data onto field positions so identical field names never collide.
+function indexFromNames(fields: Template['fields'], data?: Record<string, string>): Record<number, string> {
+  const out: Record<number, string> = {};
+  if (!data) return out;
+  fields.forEach((f, i) => { if (data[f.name] != null) out[i] = data[f.name]; });
+  return out;
+}
+
 export default function AddTaskModal({ templates, initial, onSave, onClose, planMode = false, submitLabel, titleLabel }: Props) {
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
-    initial?.template_id ? templates.find((t) => t.id === initial.template_id) ?? null : null
-  );
+  const initialTemplate = initial?.template_id ? templates.find((t) => t.id === initial.template_id) ?? null : null;
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(initialTemplate);
   const [title, setTitle] = useState(initial?.title ?? '');
-  const [fieldsData, setFieldsData] = useState<Record<string, string>>(initial?.fields_data ?? {});
+  // Keyed by field index (not name) so two fields sharing a name don't share a value.
+  const [fieldsData, setFieldsData] = useState<Record<number, string>>(
+    () => (initialTemplate ? indexFromNames(initialTemplate.fields, initial?.fields_data) : {})
+  );
   const [minutes, setMinutes] = useState<number>(clamp(initial?.duration_minutes ?? 0));
   const [saving, setSaving] = useState(false);
 
@@ -57,13 +67,19 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
+    // Fold the index-keyed values back into a name-keyed record for storage/display.
+    const named: Record<string, string> = {};
+    selectedTemplate?.fields.forEach((f, i) => {
+      const v = fieldsData[i];
+      if (v != null && v !== '') named[f.name] = v;
+    });
     await onSave({
       template_id: selectedTemplate?.id,
       template_name: selectedTemplate?.name,
       template_color: selectedTemplate?.color,
       template_icon: selectedTemplate?.icon,
       title: title.trim(),
-      fields_data: planMode ? {} : fieldsData,
+      fields_data: planMode ? {} : named,
       duration_minutes: planMode ? undefined : (minutes || undefined),
     });
     setSaving(false);
@@ -92,7 +108,8 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
                     onClick={() => {
                       const isSame = selectedTemplate?.id === t.id;
                       setSelectedTemplate(isSame ? null : t);
-                      if (!isSame) setFieldsData(initial?.template_id === t.id ? (initial.fields_data ?? {}) : {});
+                      if (isSame) setFieldsData({});
+                      else setFieldsData(initial?.template_id === t.id ? indexFromNames(t.fields, initial?.fields_data) : {});
                     }}
                   >
                     <span className="tpl-pick-icon">{t.icon}</span>
@@ -108,13 +125,13 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
             <input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder={planMode ? 'Опиши задачу' : 'Опиши выполненное дело'} autoFocus />
           </div>
 
-          {!planMode && selectedTemplate?.fields.map((f) => (
-            <div key={f.name} className="field">
+          {!planMode && selectedTemplate?.fields.map((f, i) => (
+            <div key={i} className="field">
               <label>{f.name}</label>
               {f.type === 'textarea' ? (
-                <textarea value={fieldsData[f.name] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })} placeholder={f.placeholder} rows={3} />
+                <textarea value={fieldsData[i] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [i]: e.target.value })} placeholder={f.placeholder} rows={3} />
               ) : (
-                <input type={f.type === 'number' ? 'number' : 'text'} value={fieldsData[f.name] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [f.name]: e.target.value })} placeholder={f.placeholder} />
+                <input type={f.type === 'number' ? 'number' : 'text'} value={fieldsData[i] ?? ''} onChange={(e) => setFieldsData({ ...fieldsData, [i]: e.target.value })} placeholder={f.placeholder} />
               )}
             </div>
           ))}

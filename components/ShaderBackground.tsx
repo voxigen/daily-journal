@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { plasma: 0, liquid: 1, flow: 2, vortex: 3, aurora: 4 };
+const MODES: Record<string, number> = { aurora: 0, nebula: 1, silk: 2, waves: 3 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -10,44 +10,86 @@ const FRAG = `
 precision highp float;
 uniform vec2 uRes; uniform float uTime; uniform float uMode; uniform float uMix;
 uniform vec3 uA; uniform vec3 uB; uniform vec3 uC;
+
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
 float noise(vec2 p){
   vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
   float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0));
   return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
 }
-float fbm(vec2 p){ float v=0.0; float a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p=p*2.02; a*=0.5; } return v; }
+float fbm(vec2 p){ float v=0.0; float a=0.5; for(int i=0;i<6;i++){ v+=a*noise(p); p=p*2.02+vec2(1.7,9.2); a*=0.5; } return v; }
+
 void main(){
-  vec2 p = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
-  float t = uTime*0.06;
-  float f = 0.0;
+  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
+  float t = uTime;
+  vec3 fx = vec3(0.0);
+  float e = 0.0;
+
   if (uMode < 0.5) {
-    f = 0.5 + 0.18*(sin(p.x*4.0+t*3.0)+sin(p.y*4.0+t*2.3)+sin((p.x+p.y)*3.0+t*1.7)) + 0.3*fbm(p*2.5+t);
+    // ── Aurora: shimmering vertical light curtains ──
+    float tt = t*0.12;
+    for (int i=0; i<4; i++){
+      float fi = float(i);
+      float xo = uv.x*1.2 + fi*1.9;
+      float base = -0.28 + fbm(vec2(xo*0.7, tt*1.6 + fi*3.0))*0.55 + 0.10*sin(uv.x*2.6 + t*0.5 + fi);
+      float d = uv.y - base;
+      float curtain = exp(-abs(d)*4.0);
+      float up = smoothstep(-0.5, 0.35, uv.y);
+      float flick = 0.55 + 0.45*fbm(vec2(xo*2.2, t*0.7 + fi*4.0));
+      e += curtain * up * flick * (0.55 - fi*0.07);
+    }
+    e = clamp(e, 0.0, 1.0);
+    vec3 grn = vec3(0.10, 0.90, 0.55);
+    vec3 vio = vec3(0.45, 0.22, 0.95);
+    fx = mix(grn, vio, smoothstep(-0.1, 0.5, uv.y));
+    fx = mix(fx, uA, 0.22);
   } else if (uMode < 1.5) {
-    float s=0.0;
-    for(int i=0;i<5;i++){ float fi=float(i);
-      vec2 c = 0.55*vec2(sin(t*1.3+fi*1.7), cos(t*1.1+fi*2.3));
-      s += 0.055/max(0.02, length(p-c)); }
-    f = smoothstep(0.7, 1.8, s);
+    // ── Nebula: drifting cosmic clouds with twinkling stars ──
+    vec2 q = uv*1.5;
+    float tt = t*0.045;
+    float w  = fbm(q + vec2(tt, -tt));
+    float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
+    float d  = fbm(q + 2.6*vec2(w, w2));
+    d = pow(clamp(d, 0.0, 1.0), 1.4);
+    vec3 c1 = vec3(0.04, 0.05, 0.18);
+    vec3 c3 = vec3(0.95, 0.25, 0.5);
+    fx = mix(c1, uA, smoothstep(0.15, 0.6, d));
+    fx = mix(fx, c3, smoothstep(0.55, 0.95, d));
+    vec2 gp = uv*90.0;
+    float star = pow(noise(gp), 42.0);
+    star *= 0.6 + 0.4*sin(t*3.0 + hash(floor(gp))*40.0);
+    fx += star;
+    e = smoothstep(0.08, 0.85, d) + star;
   } else if (uMode < 2.5) {
-    vec2 q = p*1.6;
-    vec2 w = vec2(fbm(q+vec2(0.0,t)), fbm(q+vec2(4.3,-t)));
-    f = fbm(q + 1.8*w);
-  } else if (uMode < 3.5) {
-    float r=length(p); float a=atan(p.y,p.x)+r*3.0 - t*2.0;
-    vec2 sp = r*vec2(cos(a), sin(a));
-    f = 0.5 + 0.5*sin(sp.x*5.0 + fbm(sp*2.0+t)*5.0);
+    // ── Silk: smooth flowing mesh gradient ──
+    float tt = t*0.16;
+    vec2 q = uv*1.15;
+    float n = fbm(q + vec2(sin(tt), cos(tt*0.8)));
+    float g1 = 0.5 + 0.5*sin(q.x*2.1 + n*3.2 + tt*2.0);
+    float g2 = 0.5 + 0.5*sin(q.y*2.1 - n*3.2 - tt*1.6);
+    fx = mix(uA, uB, g1);
+    fx = mix(fx, vec3(0.95, 0.38, 0.58), g2*0.45);
+    float sheen = pow(0.5 + 0.5*sin((q.x+q.y)*3.0 + n*4.0 + t*0.5), 3.0);
+    fx += sheen*0.15;
+    e = 0.72 + 0.28*n;
   } else {
-    float n = fbm(vec2(p.x*1.3 + t, p.y*0.7 - t*0.5));
-    f = 0.5 + 0.5*sin(p.y*4.0 + n*6.0 + t*1.5);
-    f *= smoothstep(0.95, 0.1, abs(p.y));
+    // ── Waves: layered flowing light ribbons ──
+    float tt = t*0.5;
+    float acc = 0.0;
+    for (int i=0; i<5; i++){
+      float fi = float(i);
+      float yy = uv.y + 0.16*fi - 0.32;
+      float wv = 0.085*sin(uv.x*2.8 + tt + fi*1.3) + 0.05*fbm(vec2(uv.x*2.0 + fi*2.0, tt*0.45));
+      acc = max(acc, smoothstep(0.03, 0.0, abs(yy - wv)) * (0.6 + 0.09*fi));
+    }
+    vec3 bg = mix(uA, uB, clamp(uv.y + 0.5, 0.0, 1.0));
+    fx = mix(bg*0.55, bg + vec3(0.25), acc);
+    e = 0.5 + 0.5*acc;
   }
-  f = clamp(f, 0.0, 1.0);
-  vec3 rose = vec3(0.88, 0.11, 0.28);
-  vec3 col = mix(uA, uB, smoothstep(0.2, 0.75, f));
-  col = mix(col, rose, smoothstep(0.75, 1.0, f)*0.55);
-  float k = uMix * (0.32 + 0.68*f);
-  gl_FragColor = vec4(mix(uC, col, k), 1.0);
+
+  e = clamp(e, 0.0, 1.0);
+  float k = uMix * (0.28 + 0.72*e);
+  gl_FragColor = vec4(mix(uC, fx, k), 1.0);
 }`;
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -93,7 +135,7 @@ export default function ShaderBackground({ mode }: { mode: string }) {
     const uA = gl.getUniformLocation(prog, 'uA');
     const uB = gl.getUniformLocation(prog, 'uB');
     const uC = gl.getUniformLocation(prog, 'uC');
-    gl.uniform1f(uMode, MODES[mode] ?? 2);
+    gl.uniform1f(uMode, MODES[mode] ?? 0);
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const scale = 0.7;
@@ -116,7 +158,7 @@ export default function ShaderBackground({ mode }: { mode: string }) {
       gl!.uniform3f(uA, a[0], a[1], a[2]);
       gl!.uniform3f(uB, b[0], b[1], b[2]);
       gl!.uniform3f(uC, c[0], c[1], c[2]);
-      gl!.uniform1f(uMix, document.documentElement.dataset.theme === 'light' ? 0.5 : 0.78);
+      gl!.uniform1f(uMix, document.documentElement.dataset.theme === 'light' ? 0.55 : 0.85);
     }
 
     resize();

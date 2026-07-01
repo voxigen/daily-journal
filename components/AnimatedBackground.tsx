@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import ShaderBackground from './ShaderBackground';
+import ConstellationBackground from './ConstellationBackground';
 
 type Dot = { left: number; top: number; size: number; dur: number; delay: number; drift: number };
 
-const SHADER_MODES = new Set(['plasma', 'liquid', 'flow', 'vortex', 'aurora']);
+const SHADER_MODES = new Set(['aurora', 'nebula', 'silk', 'waves']);
 
 export default function AnimatedBackground() {
   const [bg, setBg] = useState('none');
@@ -38,11 +39,11 @@ export default function AnimatedBackground() {
 
   if (!mounted || bg === 'none') return <div className="bg-anim" aria-hidden="true" />;
 
+  if (bg === 'constellation') {
+    return <ConstellationBackground key="constellation" />;
+  }
   if (SHADER_MODES.has(bg)) {
     return <ShaderBackground key={bg} mode={bg} />;
-  }
-  if (bg === 'beams') {
-    return <div className="bg-anim bg-beams" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>;
   }
   if (bg === 'grid') {
     return <div className="bg-anim bg-grid" aria-hidden="true"><span /></div>;

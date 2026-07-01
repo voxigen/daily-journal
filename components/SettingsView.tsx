@@ -39,7 +39,10 @@ const ACCENTS: { key: string; hex: string }[] = [
 
 const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
-  { key: 'cinematic', label: 'Кино' },
+  { key: 'plasma', label: 'Плазма' },
+  { key: 'liquid', label: 'Жидкость' },
+  { key: 'flow', label: 'Поток' },
+  { key: 'vortex', label: 'Вихрь' },
   { key: 'aurora', label: 'Сияние' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
@@ -84,6 +87,7 @@ export default function SettingsView() {
     setAccentState(key);
     document.documentElement.dataset.accent = key;
     localStorage.setItem('accent', key);
+    window.dispatchEvent(new Event('bgchange'));
   }
 
   function chooseBg(key: string) {

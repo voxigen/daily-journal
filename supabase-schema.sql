@@ -57,12 +57,34 @@ create table if not exists planned_tasks (
   created_at     timestamptz default now()
 );
 
+-- Повторяющиеся планы (правила: каждый день / по дням недели)
+create table if not exists recurring_plans (
+  id             uuid default gen_random_uuid() primary key,
+  user_id        uuid references auth.users not null,
+  title          text not null,
+  template_id    uuid references templates(id) on delete set null,
+  template_name  text,
+  template_color text default '#5a63d8',
+  template_icon  text default '',
+  freq           text not null default 'daily',   -- 'daily' | 'weekly'
+  weekdays       int[] default '{}',              -- Monday-based 0..6, used when freq='weekly'
+  active         boolean default true,
+  last_spawned   date,                             -- защита от повторного создания в тот же день
+  created_at     timestamptz default now()
+);
+
+-- Ссылка на правило у материализованной задачи (чтобы не дублировать за день)
+alter table planned_tasks add column if not exists recurring_id uuid references recurring_plans(id) on delete set null;
+create unique index if not exists planned_recurring_day on planned_tasks (user_id, recurring_id, date);
+
 -- RLS
-alter table templates      enable row level security;
-alter table daily_days     enable row level security;
-alter table day_tasks      enable row level security;
-alter table planned_tasks  enable row level security;
-create policy "own planned" on planned_tasks using (auth.uid() = user_id) with check (auth.uid() = user_id);
+alter table templates       enable row level security;
+alter table daily_days      enable row level security;
+alter table day_tasks       enable row level security;
+alter table planned_tasks   enable row level security;
+alter table recurring_plans enable row level security;
+create policy "own planned"   on planned_tasks   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own recurring" on recurring_plans using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "own templates"  on templates  using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own days"       on daily_days using (auth.uid() = user_id) with check (auth.uid() = user_id);

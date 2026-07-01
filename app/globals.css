@@ -92,8 +92,6 @@ html, body {
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Kill the iOS rubber-band bounce that pushes the sticky topbar around */
-  overscroll-behavior: none;
 }
 html { background: var(--page); }
 body { background: transparent; }
@@ -548,6 +546,12 @@ textarea { min-height: 84px; line-height: 1.6; }
 .pill { padding: 8px 15px; border: 1px solid var(--border-2); border-radius: 9px; background: var(--surface); color: var(--text-2); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.13s; }
 .pill:hover { border-color: var(--text-3); color: var(--text); }
 .pill.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* Weekday picker (recurring plans) */
+.weekday-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.weekday { width: 42px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-2); border-radius: 9px; background: var(--surface); color: var(--text-2); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.13s; }
+.weekday:hover { border-color: var(--text-3); color: var(--text); }
+.weekday.sel { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
 .accent-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .accent-sw { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: none; padding: 0; display: flex; align-items: center; justify-content: center; color: #fff; transition: transform 0.13s; }

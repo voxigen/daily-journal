@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { formatDuration, compressImage, uid, addDays } from '@/lib/utils';
+import { formatDuration, compressImage, uid, addDays, mondayIndex } from '@/lib/utils';
 import AddTaskModal from './AddTaskModal';
+import RecurringModal, { RecurringInput } from './RecurringModal';
 import {
-  Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus,
+  Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus, Repeat,
 } from 'lucide-react';
 
 type Template = {
@@ -32,6 +33,20 @@ type Planned = {
   template_name?: string;
   template_color?: string;
   template_icon?: string;
+  recurring_id?: string;
+};
+
+type Recurring = {
+  id: string;
+  title: string;
+  template_id?: string;
+  template_name?: string;
+  template_color?: string;
+  template_icon?: string;
+  freq: 'daily' | 'weekly';
+  weekdays?: number[];
+  active?: boolean;
+  last_spawned?: string | null;
 };
 
 type MealItem = { id: string; name: string; kcal: string };
@@ -48,6 +63,7 @@ type Props = {
   initialPlannedToday: Planned[];
   initialPlannedTomorrow: Planned[];
   templates: Template[];
+  initialRecurring?: Recurring[];
   backHref?: string;
 };
 
@@ -56,6 +72,15 @@ type ModalState =
   | { mode: 'edit'; task: Task }
   | { mode: 'plan' }
   | { mode: 'complete'; planned: Planned };
+
+const WD_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+function scheduleLabel(r: Recurring): string {
+  if (r.freq === 'daily') return 'Каждый день';
+  const days = (r.weekdays ?? []).slice().sort((a, b) => a - b);
+  if (days.length === 0) return 'Дни не выбраны';
+  if (days.length === 7) return 'Каждый день';
+  return days.map((d) => WD_SHORT[d]).join(', ');
+}
 
 const BUCKET = 'day-photos';
 
@@ -83,11 +108,13 @@ function mealKcal(m: Meal): number {
 }
 
 export default function DayView({
-  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, backHref,
+  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, initialRecurring, backHref,
 }: Props) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [plannedToday, setPlannedToday] = useState<Planned[]>(initialPlannedToday);
   const [plannedTomorrow, setPlannedTomorrow] = useState<Planned[]>(initialPlannedTomorrow);
+  const [recurring, setRecurring] = useState<Recurring[]>(initialRecurring ?? []);
+  const [recModal, setRecModal] = useState(false);
   const [notes, setNotes] = useState(initialDay?.notes ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(initialDay?.photo_urls ?? []);
   const [meals, setMeals] = useState<Meal[]>(() => loadMeals(initialDay?.meals));
@@ -152,6 +179,65 @@ export default function DayView({
     if (!error && row) setTasks((p) => [...p, row]);
     setPlannedToday((p) => p.filter((x) => x.id !== planned.id));
     await supabase.from('planned_tasks').delete().eq('id', planned.id);
+  }
+
+  // ── Recurring plans ──
+  // On the "today" view, turn each due rule into a to-do tile once per day. The
+  // last_spawned guard stops it re-appearing after you complete or delete it today.
+  const didSpawn = useRef(false);
+  useEffect(() => {
+    if (!initialRecurring || didSpawn.current) return;
+    didSpawn.current = true;
+    const wd = mondayIndex(date);
+    const due = initialRecurring.filter(
+      (r) => r.active !== false && r.last_spawned !== date &&
+        (r.freq === 'daily' || (r.freq === 'weekly' && (r.weekdays ?? []).includes(wd)))
+    );
+    if (!due.length) return;
+    (async () => {
+      const rows = due.map((r) => ({
+        user_id: userId, date, title: r.title,
+        template_id: r.template_id ?? null, template_name: r.template_name ?? null,
+        template_color: r.template_color ?? null, template_icon: r.template_icon ?? null,
+        recurring_id: r.id,
+      }));
+      const { data, error } = await supabase.from('planned_tasks').insert(rows).select();
+      if (!error && data?.length) setPlannedToday((p) => [...p, ...data]);
+      const ids = due.map((r) => r.id);
+      await supabase.from('recurring_plans').update({ last_spawned: date }).in('id', ids);
+      setRecurring((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, last_spawned: date } : r)));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function addRecurring(input: RecurringInput) {
+    const { data, error } = await supabase.from('recurring_plans').insert({
+      user_id: userId, title: input.title,
+      template_id: input.template_id ?? null, template_name: input.template_name ?? null,
+      template_color: input.template_color ?? null, template_icon: input.template_icon ?? null,
+      freq: input.freq, weekdays: input.weekdays, active: true,
+    }).select().single();
+    if (error || !data) return;
+    setRecurring((p) => [...p, data]);
+    // If it's due today, drop a to-do tile in right away.
+    const wd = mondayIndex(date);
+    const dueToday = data.freq === 'daily' || (data.freq === 'weekly' && (data.weekdays ?? []).includes(wd));
+    if (dueToday) {
+      const { data: row } = await supabase.from('planned_tasks').insert({
+        user_id: userId, date, title: data.title,
+        template_id: data.template_id ?? null, template_name: data.template_name ?? null,
+        template_color: data.template_color ?? null, template_icon: data.template_icon ?? null,
+        recurring_id: data.id,
+      }).select().single();
+      if (row) setPlannedToday((p) => [...p, row]);
+      await supabase.from('recurring_plans').update({ last_spawned: date }).eq('id', data.id);
+      setRecurring((p) => p.map((x) => (x.id === data.id ? { ...x, last_spawned: date } : x)));
+    }
+  }
+
+  async function deleteRecurring(id: string) {
+    setRecurring((p) => p.filter((r) => r.id !== id));
+    await supabase.from('recurring_plans').delete().eq('id', id);
   }
 
   // ── Meals ──
@@ -292,6 +378,31 @@ export default function DayView({
         </div>
       </div>
 
+      {/* Recurring plans (today view only) */}
+      {initialRecurring && (
+        <div className="section">
+          <div className="section-head">
+            <span className="section-label"><Repeat /> Повторяющиеся планы</span>
+            <span className="section-aside" style={{ color: 'var(--text-3)', fontWeight: 500 }}>появляются в «К выполнению»</span>
+          </div>
+          <div className={`task-list${recurring.length === 0 ? ' task-list-empty' : ''}`}>
+            {recurring.map((r) => (
+              <div key={r.id} className="task-row">
+                <span className="task-dot" style={{ background: r.template_color ?? 'var(--accent)' }} />
+                <div className="task-body">
+                  <div className="task-top"><span className="task-title">{r.title}</span>{renderChip(r)}</div>
+                  <span className="task-time"><Repeat /> {scheduleLabel(r)}</span>
+                </div>
+                <div className="task-actions">
+                  <button className="task-action del" onClick={() => deleteRecurring(r.id)} aria-label="Удалить"><Trash2 /></button>
+                </div>
+              </div>
+            ))}
+            <button className="add-row" onClick={() => setRecModal(true)}><Plus /> Добавить повтор</button>
+          </div>
+        </div>
+      )}
+
       {/* Meals */}
       <div className="section">
         <div className="section-head">
@@ -364,6 +475,10 @@ export default function DayView({
           onSave={modalOnSave}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {recModal && (
+        <RecurringModal templates={templates} onSave={addRecurring} onClose={() => setRecModal(false)} />
       )}
 
       {lightbox && (

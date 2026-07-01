@@ -19,36 +19,43 @@ float noise(vec2 p){
 }
 float fbm(vec2 p){ float v=0.0; float a=0.5; for(int i=0;i<6;i++){ v+=a*noise(p); p=p*2.02+vec2(1.7,9.2); a*=0.5; } return v; }
 
-// Soft twinkling stars on a jittered grid. thresh controls how many cells hold a star.
+// Crisp twinkling star on a jittered grid cell. Sizes are in screen (uv) units so
+// stars stay sharp pinpoints regardless of density; thresh controls how many appear.
 float starField(vec2 uv, float density, float tw, float thresh, float t){
   vec2 g = uv*density;
   vec2 id = floor(g);
-  vec2 f = fract(g) - 0.5;
-  float present = step(thresh, hash(id));
-  vec2 off = (vec2(hash(id+11.3), hash(id+27.1)) - 0.5) * 0.75;
-  float d = length(f - off);
-  float core = smoothstep(0.16, 0.0, d);
-  float glow = smoothstep(0.5, 0.0, d) * 0.22;
-  float tw2 = 0.32 + 0.68*(0.5 + 0.5*sin(t*tw + hash(id+5.1)*6.2831));
-  return present * (core + glow) * tw2;
+  if (hash(id) < thresh) return 0.0;
+  vec2 off = (vec2(hash(id+11.3), hash(id+27.1)) - 0.5) * 0.8;
+  float d = length((fract(g) - 0.5) - off) / density;
+  float core = smoothstep(0.0026, 0.0, d);          // sharp pinpoint
+  float halo = smoothstep(0.0095, 0.0, d) * 0.10;   // tight, faint glow
+  float tw2 = 0.5 + 0.5*sin(t*tw + hash(id+5.1)*6.2831);
+  tw2 = 0.35 + 0.65*tw2*tw2;
+  return (core + halo) * tw2;
 }
 
-// A single shooting star streaking along a diagonal; seed offsets its timing + path.
-float shootingStar(vec2 uv, float t, float seed){
-  float period = 6.0;
-  float lt = mod(t*0.6 + seed*period, period);
-  float prog = lt / 1.1;                        // active for ~1.1s each period
+// A comet: enters from a random edge at a random downward angle each cycle, so it
+// never streaks through the same spot twice. seed offsets its schedule.
+float comet(vec2 uv, float t, float seed){
+  float period = 8.0;
+  float tp = t/period + seed;
+  float cyc = floor(tp);
+  float prog = (fract(tp) * period) / 1.3;          // streak visible for ~1.3s
   if (prog > 1.0) return 0.0;
-  vec2 dir = normalize(vec2(1.0, -0.42));
-  vec2 start = vec2(-0.85, 0.42) + vec2(seed*0.7, -seed*0.55);
-  vec2 head = start + dir * prog * 2.4;
-  vec2 rel = uv - head;
-  float along = dot(rel, -dir);                 // >0 = trail behind the head
+  float r1 = hash(vec2(cyc, seed*13.1 + 1.0));
+  float r2 = hash(vec2(cyc*1.7 + 3.0, seed*7.3 + 2.0));
+  float r3 = hash(vec2(cyc*2.3 + 9.0, seed*5.9 + 4.0));
+  float r4 = hash(vec2(cyc*3.1 + 5.0, seed*3.7 + 6.0));
+  float sx = r4 < 0.5 ? 1.0 : -1.0;                 // travel left→right or right→left
+  vec2 start = vec2(sx > 0.0 ? mix(-1.1, 0.4, r1) : mix(-0.4, 1.1, r1), mix(0.20, 0.55, r2));
+  vec2 dir = normalize(vec2(sx, mix(-0.85, -0.30, r3)));
+  vec2 rel = uv - (start + dir * prog * 2.7);
+  float along = dot(rel, -dir);                     // >0 = trail behind the head
   float perp = abs(dot(rel, vec2(-dir.y, dir.x)));
-  float trail = smoothstep(0.28, 0.0, along) * step(0.0, along) * smoothstep(0.010, 0.0, perp);
-  float head2 = smoothstep(0.03, 0.0, length(rel));
-  float fade = smoothstep(0.0, 0.12, prog) * smoothstep(1.0, 0.75, prog);
-  return (trail*0.9 + head2) * fade;
+  float trail = smoothstep(0.34, 0.0, along) * step(0.0, along) * smoothstep(0.0045, 0.0, perp);
+  float head = smoothstep(0.016, 0.0, length(rel));
+  float fade = smoothstep(0.0, 0.12, prog) * smoothstep(1.0, 0.72, prog);
+  return (trail*0.8 + head*1.1) * fade;
 }
 
 void main(){
@@ -70,13 +77,13 @@ void main(){
     fx = mix(c1, uA, smoothstep(0.15, 0.6, d));
     fx = mix(fx, c3, smoothstep(0.55, 0.95, d));
 
-    // Stars: two static twinkling layers, one slow-drifting layer, plus shooting stars.
+    // Stars: two static twinkling layers, one slow-drifting layer, plus rare comets.
     float s = 0.0;
-    s += starField(uv, 22.0, 2.2, 0.90, t);
-    s += starField(uv, 40.0, 3.4, 0.955, t) * 0.65;
-    s += starField(uv + vec2(t*0.012, t*0.004), 27.0, 1.5, 0.93, t) * 0.9;
-    float shoot = shootingStar(uv, t, 0.0) + shootingStar(uv, t, 0.37) + shootingStar(uv, t, 0.71);
-    fx += vec3(0.9, 0.93, 1.0) * (s + shoot);
+    s += starField(uv, 20.0, 2.0, 0.86, t);
+    s += starField(uv, 34.0, 3.2, 0.93, t) * 0.8;
+    s += starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t) * 0.9;
+    float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
+    fx += vec3(0.92, 0.95, 1.0) * (s + shoot);
     e = smoothstep(0.08, 0.85, d) + s + shoot;
   } else {
     // ── Waves: layered flowing light ribbons ──
@@ -144,10 +151,15 @@ export default function ShaderBackground({ mode }: { mode: string }) {
     gl.uniform1f(uMode, MODES[mode] ?? 0);
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    const scale = 0.7;
+    // Nebula renders near full-res so stars/comets stay crisp; waves can be softer.
+    const scale = mode === 'nebula' ? 1.0 : 0.8;
+    const MAX_PIXELS = 3200000; // cap work on very large displays
     function resize() {
-      const w = Math.max(1, Math.floor(window.innerWidth * dpr * scale));
-      const h = Math.max(1, Math.floor(window.innerHeight * dpr * scale));
+      let w = window.innerWidth * dpr * scale;
+      let h = window.innerHeight * dpr * scale;
+      const over = (w * h) / MAX_PIXELS;
+      if (over > 1) { const f = Math.sqrt(over); w /= f; h /= f; }
+      w = Math.max(1, Math.floor(w)); h = Math.max(1, Math.floor(h));
       if (canvas!.width !== w || canvas!.height !== h) {
         canvas!.width = w; canvas!.height = h;
         gl!.viewport(0, 0, w, h);

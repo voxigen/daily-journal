@@ -35,6 +35,9 @@ export default function AnimatedBackground() {
 
   if (!mounted || bg === 'none') return <div className="bg-anim" aria-hidden="true" />;
 
+  if (bg === 'cinematic') {
+    return <div className="bg-anim bg-cinematic" aria-hidden="true"><span /><span /><span /><span /><span /></div>;
+  }
   if (bg === 'aurora') {
     return <div className="bg-anim bg-aurora" aria-hidden="true"><span /><span /><span /><span /></div>;
   }

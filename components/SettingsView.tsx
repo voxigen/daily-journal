@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers } from 'lucide-react';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
+
+const SURFACES: { key: string; label: string }[] = [
+  { key: 'solid', label: 'Обычные' },
+  { key: 'glass', label: 'Стекло' },
+  { key: 'matte', label: 'Матовые' },
+  { key: 'soft', label: 'Тени' },
+];
 
 const FONTS: { key: string; label: string; css: string }[] = [
   { key: 'inter', label: 'Inter', css: 'var(--font-inter), sans-serif' },
@@ -32,6 +39,7 @@ const ACCENTS: { key: string; hex: string }[] = [
 
 const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
+  { key: 'cinematic', label: 'Кино' },
   { key: 'aurora', label: 'Сияние' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
@@ -45,6 +53,7 @@ export default function SettingsView() {
   const [bg, setBgState] = useState('none');
   const [font, setFontState] = useState('inter');
   const [size, setSizeState] = useState('md');
+  const [surface, setSurfaceState] = useState('solid');
 
   useEffect(() => {
     const t = localStorage.getItem('theme');
@@ -53,6 +62,7 @@ export default function SettingsView() {
     setBgState(document.documentElement.dataset.bg || 'none');
     setFontState(document.documentElement.dataset.font || 'inter');
     setSizeState(document.documentElement.dataset.size || 'md');
+    setSurfaceState(document.documentElement.dataset.surface || 'solid');
   }, []);
 
   function chooseTheme(v: ThemeChoice) {
@@ -93,6 +103,12 @@ export default function SettingsView() {
     setSizeState(key);
     document.documentElement.dataset.size = key;
     localStorage.setItem('size', key);
+  }
+
+  function chooseSurface(key: string) {
+    setSurfaceState(key);
+    document.documentElement.dataset.surface = key;
+    localStorage.setItem('surface', key);
   }
 
   return (
@@ -158,6 +174,20 @@ export default function SettingsView() {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Layers /> Стиль блоков</span></div>
+        <div className="setting-card">
+          <div className="pills">
+            {SURFACES.map((s) => (
+              <button key={s.key} className={`pill${surface === s.key ? ' sel' : ''}`} onClick={() => chooseSurface(s.key)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="setting-hint">«Стекло» и «Матовые» лучше всего смотрятся с анимированным фоном.</div>
         </div>
       </div>
 

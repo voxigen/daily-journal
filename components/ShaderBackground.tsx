@@ -11,7 +11,13 @@ precision highp float;
 uniform vec2 uRes; uniform float uTime; uniform float uMode; uniform float uMix;
 uniform vec3 uA; uniform vec3 uB; uniform vec3 uC;
 
-float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
+// Precision-stable hash (Dave Hoskins) — no sin() of large args, so the value
+// noise doesn't break into blocky cells on real GPUs.
+float hash(vec2 p){
+  vec3 p3 = fract(vec3(p.x, p.y, p.x) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
 float noise(vec2 p){
   vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
   float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0));
@@ -61,35 +67,42 @@ float comet(vec2 uv, float t, float seed){
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
   float t = uTime;
-  vec3 fx = vec3(0.0);
-  float e = 0.0;
 
-  // ── Nebula: drifting cosmic clouds + layered starfield ──
+  // ── Nebula: drifting cosmic clouds ──
   vec2 q = uv*1.5;
   float tt = t*0.045;
   float w  = fbm(q + vec2(tt, -tt));
   float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
   float d  = fbm(q + 2.6*vec2(w, w2));
   d = pow(clamp(d, 0.0, 1.0), 1.35);
-  vec3 c1 = vec3(0.04, 0.05, 0.18);
-  vec3 c3 = vec3(0.95, 0.25, 0.5);
-  fx = mix(c1, uA, smoothstep(0.10, 0.62, d));
-  fx = mix(fx, c3, smoothstep(0.50, 0.98, d));
-
-  // Stars: two static twinkling layers, one slow-drifting layer, plus rare comets.
+  // Stars + comets (shared by both themes).
   float s = 0.0;
   s += starField(uv, 20.0, 2.0, 0.86, t);
   s += starField(uv, 34.0, 3.2, 0.93, t) * 0.8;
   s += starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t) * 0.9;
   float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
-  fx += vec3(0.92, 0.95, 1.0) * (s + shoot);
-  e = smoothstep(0.06, 0.85, d) + s + shoot;
 
-  e = clamp(e, 0.0, 1.0);
-  float k = uMix * (0.28 + 0.72*e);
-  vec3 outc = mix(uC, fx, k);
-  // Interleaved-gradient-noise dither — stable on mobile GPUs (no huge sin args);
-  // breaks up the 8-bit colour banding ("contour steps") in the smooth clouds.
+  vec3 outc;
+  if (uMix > 0.7) {
+    // Dark theme — vivid deep-space nebula.
+    vec3 c1 = vec3(0.03, 0.04, 0.14);
+    vec3 c3 = vec3(0.95, 0.25, 0.5);
+    vec3 col = mix(c1, uA, smoothstep(0.08, 0.62, d));
+    col = mix(col, c3, smoothstep(0.50, 0.98, d));
+    col += vec3(0.92, 0.95, 1.0) * (s + shoot);
+    float e = clamp(smoothstep(0.06, 0.85, d) + s + shoot, 0.0, 1.0);
+    outc = mix(uC, col, uMix * (0.30 + 0.70*e));
+  } else {
+    // Light theme — soft airy pastel clouds on the light page.
+    vec3 soft1 = mix(uC, uA, 0.30);
+    vec3 soft2 = mix(uC, vec3(0.93, 0.42, 0.58), 0.42);
+    vec3 col = mix(uC, soft1, smoothstep(0.04, 0.60, d));
+    col = mix(col, soft2, smoothstep(0.52, 0.96, d));
+    col = mix(col, uA * 0.55, clamp((s + shoot) * 0.6, 0.0, 0.5));
+    outc = col;
+  }
+
+  // Interleaved-gradient-noise dither — stable on mobile GPUs (no huge sin args).
   float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
   gl_FragColor = vec4(outc + (ign - 0.5) * (2.0/255.0), 1.0);
 }`;

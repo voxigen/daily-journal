@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock } from 'lucide-react';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
 
@@ -40,14 +41,44 @@ const ACCENTS: { key: string; hex: string }[] = [
 const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
   { key: 'constellation', label: 'Созвездие' },
-  { key: 'aurora', label: 'Аврора' },
   { key: 'nebula', label: 'Туманность' },
-  { key: 'silk', label: 'Шёлк' },
   { key: 'waves', label: 'Волны' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
   { key: 'grid', label: 'Сетка' },
 ];
+
+// IANA zones for the day-reset boundary. 'auto' resolves to the device zone.
+const TIMEZONES: { key: string; label: string }[] = [
+  { key: 'auto', label: 'Авто (по устройству)' },
+  { key: 'Europe/Kaliningrad', label: 'Калининград · UTC+2' },
+  { key: 'Europe/Moscow', label: 'Москва · UTC+3' },
+  { key: 'Europe/Samara', label: 'Самара · UTC+4' },
+  { key: 'Asia/Yekaterinburg', label: 'Екатеринбург · UTC+5' },
+  { key: 'Asia/Omsk', label: 'Омск · UTC+6' },
+  { key: 'Asia/Krasnoyarsk', label: 'Красноярск · UTC+7' },
+  { key: 'Asia/Irkutsk', label: 'Иркутск · UTC+8' },
+  { key: 'Asia/Yakutsk', label: 'Якутск · UTC+9' },
+  { key: 'Asia/Vladivostok', label: 'Владивосток · UTC+10' },
+  { key: 'Asia/Magadan', label: 'Магадан · UTC+11' },
+  { key: 'Asia/Kamchatka', label: 'Камчатка · UTC+12' },
+  { key: 'Asia/Almaty', label: 'Алматы · UTC+5' },
+  { key: 'Asia/Tashkent', label: 'Ташкент · UTC+5' },
+  { key: 'Asia/Tbilisi', label: 'Тбилиси · UTC+4' },
+  { key: 'Asia/Yerevan', label: 'Ереван · UTC+4' },
+  { key: 'Europe/Minsk', label: 'Минск · UTC+3' },
+  { key: 'Europe/Kyiv', label: 'Киев · UTC+2/+3' },
+  { key: 'Europe/London', label: 'Лондон · UTC+0/+1' },
+  { key: 'Europe/Berlin', label: 'Берлин · UTC+1/+2' },
+  { key: 'America/New_York', label: 'Нью-Йорк · UTC−5/−4' },
+  { key: 'America/Los_Angeles', label: 'Лос-Анджелес · UTC−8/−7' },
+  { key: 'UTC', label: 'UTC' },
+];
+
+function resolveTz(choice: string): string {
+  if (choice !== 'auto') return choice;
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
+}
 
 export default function SettingsView() {
   const [theme, setThemeState] = useState<ThemeChoice>('auto');
@@ -56,8 +87,12 @@ export default function SettingsView() {
   const [font, setFontState] = useState('inter');
   const [size, setSizeState] = useState('md');
   const [surface, setSurfaceState] = useState('solid');
+  const [tz, setTzState] = useState('auto');
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
     const t = localStorage.getItem('theme');
     setThemeState(t === 'light' || t === 'dark' ? t : 'auto');
     setAccentState(document.documentElement.dataset.accent || 'indigo');
@@ -65,6 +100,7 @@ export default function SettingsView() {
     setFontState(document.documentElement.dataset.font || 'inter');
     setSizeState(document.documentElement.dataset.size || 'md');
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
+    setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);
 
   function chooseTheme(v: ThemeChoice) {
@@ -112,6 +148,14 @@ export default function SettingsView() {
     setSurfaceState(key);
     document.documentElement.dataset.surface = key;
     localStorage.setItem('surface', key);
+  }
+
+  function chooseTz(key: string) {
+    setTzState(key);
+    localStorage.setItem('tzChoice', key);
+    // The server reads this cookie to decide when the day rolls over.
+    document.cookie = `tz=${resolveTz(key)}; path=/; max-age=31536000; samesite=lax`;
+    router.refresh();
   }
 
   return (
@@ -191,6 +235,21 @@ export default function SettingsView() {
             ))}
           </div>
           <div className="setting-hint">«Стекло» и «Матовые» лучше всего смотрятся с анимированным фоном.</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Clock /> Сброс дня</span></div>
+        <div className="setting-card">
+          <select className="tz-select" value={tz} onChange={(e) => chooseTz(e.target.value)}>
+            {TIMEZONES.map((z) => (
+              <option key={z.key} value={z.key}>{z.label}</option>
+            ))}
+          </select>
+          <div className="setting-hint">
+            Новый день начинается в полночь по выбранному поясу.
+            {mounted && <> Сейчас: <b>{resolveTz(tz)}</b>.</>}
+          </div>
         </div>
       </div>
 

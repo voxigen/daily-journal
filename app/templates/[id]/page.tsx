@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import { todayStr } from '@/lib/utils';
+import { getTz } from '@/lib/tz';
 import TemplateDashboard from '@/components/TemplateDashboard';
 
 export default async function TemplateStatsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,5 +28,5 @@ export default async function TemplateStatsPage({ params }: { params: Promise<{ 
     .order('date', { ascending: true })
     .order('created_at', { ascending: true });
 
-  return <TemplateDashboard template={template} tasks={tasks ?? []} today={todayStr()} />;
+  return <TemplateDashboard template={template} tasks={tasks ?? []} today={todayStr(await getTz())} />;
 }

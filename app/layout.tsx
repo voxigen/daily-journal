@@ -40,7 +40,7 @@ export const viewport: Viewport = {
 };
 
 // Resolve theme/accent/background before first paint to avoid a flash.
-const themeScript = `(function(){try{var r=document.documentElement;var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}r.dataset.theme=t;r.style.colorScheme=t;r.dataset.accent=localStorage.getItem('accent')||'indigo';r.dataset.bg=localStorage.getItem('bg')||'none';r.dataset.font=localStorage.getItem('font')||'inter';r.dataset.size=localStorage.getItem('size')||'md';r.dataset.surface=localStorage.getItem('surface')||'solid';}catch(e){}})();`;
+const themeScript = `(function(){try{var r=document.documentElement;var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}r.dataset.theme=t;r.style.colorScheme=t;r.dataset.accent=localStorage.getItem('accent')||'indigo';r.dataset.bg=localStorage.getItem('bg')||'none';r.dataset.font=localStorage.getItem('font')||'inter';r.dataset.size=localStorage.getItem('size')||'md';r.dataset.surface=localStorage.getItem('surface')||'solid';var tc=localStorage.getItem('tzChoice');var tz=(tc&&tc!=='auto')?tc:(Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC');if(!/(?:^|; )tz=/.test(document.cookie)){document.cookie='tz='+tz+'; path=/; max-age=31536000; samesite=lax';}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -7,8 +7,21 @@ export function formatDuration(minutes: number): string {
   return `${m}м`;
 }
 
-export function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+// Current date as YYYY-MM-DD. With an IANA `tz` the day boundary follows that
+// zone's midnight; without it, falls back to UTC (previous behaviour).
+export function todayStr(tz?: string): string {
+  const now = new Date();
+  if (tz) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      }).formatToParts(now);
+      const get = (t: string) => parts.find((p) => p.type === t)?.value;
+      const y = get('year'), m = get('month'), d = get('day');
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch { /* invalid tz — fall through to UTC */ }
+  }
+  return now.toISOString().slice(0, 10);
 }
 
 export function yesterdayStr(): string {

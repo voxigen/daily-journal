@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { todayStr, addDays, formatDateRu } from '@/lib/utils';
+import { getTz } from '@/lib/tz';
 import DayView from '@/components/DayView';
 import AppShell from '@/components/AppShell';
 
@@ -9,7 +10,7 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const today = todayStr();
+  const today = todayStr(await getTz());
   const tomorrow = addDays(today, 1);
 
   const [

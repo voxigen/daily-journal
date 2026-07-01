@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { aurora: 0, nebula: 1, silk: 2, waves: 3 };
+const MODES: Record<string, number> = { nebula: 0, waves: 1 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -19,6 +19,38 @@ float noise(vec2 p){
 }
 float fbm(vec2 p){ float v=0.0; float a=0.5; for(int i=0;i<6;i++){ v+=a*noise(p); p=p*2.02+vec2(1.7,9.2); a*=0.5; } return v; }
 
+// Soft twinkling stars on a jittered grid. thresh controls how many cells hold a star.
+float starField(vec2 uv, float density, float tw, float thresh, float t){
+  vec2 g = uv*density;
+  vec2 id = floor(g);
+  vec2 f = fract(g) - 0.5;
+  float present = step(thresh, hash(id));
+  vec2 off = (vec2(hash(id+11.3), hash(id+27.1)) - 0.5) * 0.75;
+  float d = length(f - off);
+  float core = smoothstep(0.16, 0.0, d);
+  float glow = smoothstep(0.5, 0.0, d) * 0.22;
+  float tw2 = 0.32 + 0.68*(0.5 + 0.5*sin(t*tw + hash(id+5.1)*6.2831));
+  return present * (core + glow) * tw2;
+}
+
+// A single shooting star streaking along a diagonal; seed offsets its timing + path.
+float shootingStar(vec2 uv, float t, float seed){
+  float period = 6.0;
+  float lt = mod(t*0.6 + seed*period, period);
+  float prog = lt / 1.1;                        // active for ~1.1s each period
+  if (prog > 1.0) return 0.0;
+  vec2 dir = normalize(vec2(1.0, -0.42));
+  vec2 start = vec2(-0.85, 0.42) + vec2(seed*0.7, -seed*0.55);
+  vec2 head = start + dir * prog * 2.4;
+  vec2 rel = uv - head;
+  float along = dot(rel, -dir);                 // >0 = trail behind the head
+  float perp = abs(dot(rel, vec2(-dir.y, dir.x)));
+  float trail = smoothstep(0.28, 0.0, along) * step(0.0, along) * smoothstep(0.010, 0.0, perp);
+  float head2 = smoothstep(0.03, 0.0, length(rel));
+  float fade = smoothstep(0.0, 0.12, prog) * smoothstep(1.0, 0.75, prog);
+  return (trail*0.9 + head2) * fade;
+}
+
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
   float t = uTime;
@@ -26,25 +58,7 @@ void main(){
   float e = 0.0;
 
   if (uMode < 0.5) {
-    // ── Aurora: shimmering vertical light curtains ──
-    float tt = t*0.12;
-    for (int i=0; i<4; i++){
-      float fi = float(i);
-      float xo = uv.x*1.2 + fi*1.9;
-      float base = -0.28 + fbm(vec2(xo*0.7, tt*1.6 + fi*3.0))*0.55 + 0.10*sin(uv.x*2.6 + t*0.5 + fi);
-      float d = uv.y - base;
-      float curtain = exp(-abs(d)*4.0);
-      float up = smoothstep(-0.5, 0.35, uv.y);
-      float flick = 0.55 + 0.45*fbm(vec2(xo*2.2, t*0.7 + fi*4.0));
-      e += curtain * up * flick * (0.55 - fi*0.07);
-    }
-    e = clamp(e, 0.0, 1.0);
-    vec3 grn = vec3(0.10, 0.90, 0.55);
-    vec3 vio = vec3(0.45, 0.22, 0.95);
-    fx = mix(grn, vio, smoothstep(-0.1, 0.5, uv.y));
-    fx = mix(fx, uA, 0.22);
-  } else if (uMode < 1.5) {
-    // ── Nebula: drifting cosmic clouds with twinkling stars ──
+    // ── Nebula: drifting cosmic clouds + layered starfield ──
     vec2 q = uv*1.5;
     float tt = t*0.045;
     float w  = fbm(q + vec2(tt, -tt));
@@ -55,23 +69,15 @@ void main(){
     vec3 c3 = vec3(0.95, 0.25, 0.5);
     fx = mix(c1, uA, smoothstep(0.15, 0.6, d));
     fx = mix(fx, c3, smoothstep(0.55, 0.95, d));
-    vec2 gp = uv*90.0;
-    float star = pow(noise(gp), 42.0);
-    star *= 0.6 + 0.4*sin(t*3.0 + hash(floor(gp))*40.0);
-    fx += star;
-    e = smoothstep(0.08, 0.85, d) + star;
-  } else if (uMode < 2.5) {
-    // ── Silk: smooth flowing mesh gradient ──
-    float tt = t*0.16;
-    vec2 q = uv*1.15;
-    float n = fbm(q + vec2(sin(tt), cos(tt*0.8)));
-    float g1 = 0.5 + 0.5*sin(q.x*2.1 + n*3.2 + tt*2.0);
-    float g2 = 0.5 + 0.5*sin(q.y*2.1 - n*3.2 - tt*1.6);
-    fx = mix(uA, uB, g1);
-    fx = mix(fx, vec3(0.95, 0.38, 0.58), g2*0.45);
-    float sheen = pow(0.5 + 0.5*sin((q.x+q.y)*3.0 + n*4.0 + t*0.5), 3.0);
-    fx += sheen*0.15;
-    e = 0.72 + 0.28*n;
+
+    // Stars: two static twinkling layers, one slow-drifting layer, plus shooting stars.
+    float s = 0.0;
+    s += starField(uv, 22.0, 2.2, 0.90, t);
+    s += starField(uv, 40.0, 3.4, 0.955, t) * 0.65;
+    s += starField(uv + vec2(t*0.012, t*0.004), 27.0, 1.5, 0.93, t) * 0.9;
+    float shoot = shootingStar(uv, t, 0.0) + shootingStar(uv, t, 0.37) + shootingStar(uv, t, 0.71);
+    fx += vec3(0.9, 0.93, 1.0) * (s + shoot);
+    e = smoothstep(0.08, 0.85, d) + s + shoot;
   } else {
     // ── Waves: layered flowing light ribbons ──
     float tt = t*0.5;

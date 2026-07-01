@@ -92,6 +92,8 @@ html, body {
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Kill the iOS rubber-band bounce that pushes the sticky topbar around */
+  overscroll-behavior: none;
 }
 html { background: var(--page); }
 body { background: transparent; }
@@ -122,7 +124,7 @@ body { background: transparent; }
   background-size: 50px 50px; animation: gridmove 12s linear infinite; }
 @keyframes gridmove { from { transform: translate(0,0); } to { transform: translate(50px,50px); } }
 
-/* WebGL shader canvas (aurora/nebula/silk/waves) + constellation network canvas */
+/* WebGL shader canvas (nebula/waves) + constellation network canvas */
 .bg-shader, .bg-net { position: fixed; top: 0; left: 0; width: calc(100vw / var(--zoom)); height: calc(100vh / var(--zoom)); z-index: -1; pointer-events: none; display: block; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -566,17 +568,14 @@ textarea { min-height: 84px; line-height: 1.6; }
     radial-gradient(circle, var(--accent) 1.5px, transparent 1.7px),
     linear-gradient(45deg, transparent 47%, color-mix(in srgb, var(--accent) 24%, transparent) 48% 52%, transparent 53%);
   background-size: 21px 21px, 42px 42px; }
-.bg-prev.aurora { background: linear-gradient(150deg, #12e08a, var(--accent) 55%, #8b3cf0); background-size: 220% 220%; animation: prevflow 7s ease infinite; }
 .bg-prev.nebula { background:
   radial-gradient(circle at 30% 32%, var(--accent), transparent 46%),
   radial-gradient(circle at 72% 68%, #e11d6a, transparent 46%),
   radial-gradient(circle at 55% 52%, var(--blue), transparent 52%),
   #0a0c18; }
-.bg-prev.silk { background: linear-gradient(120deg, var(--accent), var(--blue), #e64d80, var(--accent)); background-size: 260% 260%; animation: prevflow 8s ease infinite; }
 .bg-prev.waves { background:
   repeating-linear-gradient(0deg, transparent 0 8px, color-mix(in srgb, #ffffff 30%, transparent) 8px 10px),
   linear-gradient(180deg, var(--accent), var(--blue)); }
-@keyframes prevflow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 .bg-prev.particles { background-color: var(--surface-2);
   background-image: radial-gradient(circle, var(--accent) 1.6px, transparent 1.8px);
   background-size: 16px 16px; }

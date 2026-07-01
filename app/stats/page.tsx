@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { todayStr } from '@/lib/utils';
+import { getTz } from '@/lib/tz';
 import StatsView from '@/components/StatsView';
 
 export default async function StatsPage() {
@@ -15,7 +16,7 @@ export default async function StatsPage() {
 
   return (
     <StatsView
-      today={todayStr()}
+      today={todayStr(await getTz())}
       tasks={tasks ?? []}
       dayDates={(days ?? []).map((d) => d.date as string)}
     />

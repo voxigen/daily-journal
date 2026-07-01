@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatDuration, compressImage, uid, addDays, mondayIndex } from '@/lib/utils';
 import AddTaskModal from './AddTaskModal';
 import RecurringModal, { RecurringInput } from './RecurringModal';
+import TemplateIcon from './TemplateIcon';
 import {
   Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus, Repeat,
 } from 'lucide-react';
@@ -296,7 +297,7 @@ export default function DayView({
   function renderChip(p: { template_name?: string; template_color?: string; template_icon?: string }) {
     if (!p.template_name) return null;
     const color = p.template_color ?? 'var(--accent)';
-    return <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}>{p.template_icon} {p.template_name}</span>;
+    return <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}><TemplateIcon icon={p.template_icon} className="chip-ico" /> {p.template_name}</span>;
   }
 
   return (

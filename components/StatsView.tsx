@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import AppShell from './AppShell';
+import TemplateIcon from './TemplateIcon';
 import { formatDuration, addDays, mondayIndex, MONTHS_RU } from '@/lib/utils';
 import { Flame, Clock, ListChecks, TrendingUp, ChartColumnBig, PieChart, CalendarDays } from 'lucide-react';
 
@@ -215,7 +216,7 @@ export default function StatsView({ today, tasks, dayDates }: Props) {
               return (
                 <div className="legend-row" key={i}>
                   <span className="legend-dot" style={{ background: s.color }} />
-                  <span className="legend-name">{s.icon} {s.name}</span>
+                  <span className="legend-name">{s.name}</span>
                   <span className="legend-val">{frac}%</span>
                 </div>
               );
@@ -264,7 +265,7 @@ export default function StatsView({ today, tasks, dayDates }: Props) {
             const pct = Math.max(3, Math.round((v / base) * 100));
             return (
               <div className="cat-row" key={c.name}>
-                <span className="cat-icon">{c.icon || '•'}</span>
+                <span className="cat-icon">{c.icon ? <TemplateIcon icon={c.icon} color={c.color} /> : '•'}</span>
                 <div className="cat-body">
                   <div className="cat-top">
                     <span className="cat-name">{c.name}</span>

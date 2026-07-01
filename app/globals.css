@@ -424,6 +424,15 @@ textarea { min-height: 84px; line-height: 1.6; }
 .icon-pick { width: 36px; height: 36px; font-size: 18px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border-2); border-radius: 9px; cursor: pointer; transition: all 0.13s; line-height: 1; }
 .icon-pick:hover { border-color: var(--text-3); }
 .icon-pick.active { border-color: var(--accent); background: var(--accent-soft); }
+.icon-pick svg { width: 19px; height: 19px; }
+
+/* Template line-icons — sized per container, coloured via the template colour */
+.tpl-row-icon svg { width: 21px; height: 21px; }
+.tpl-pick-icon svg { width: 17px; height: 17px; }
+.dash-hero-icon svg { width: 27px; height: 27px; }
+.cat-icon svg { width: 18px; height: 18px; }
+.hist-task-emoji svg { width: 14px; height: 14px; }
+.task-chip .chip-ico { width: 12px; height: 12px; }
 .fields-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 9px; }
 .field-row { display: flex; gap: 7px; align-items: center; }
 .field-row input, .field-row select { flex: 1; }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { formatDuration, MAX_TASK_MINUTES } from '@/lib/utils';
+import TemplateIcon from './TemplateIcon';
 import { Clock, X } from 'lucide-react';
 
 type Template = {
@@ -112,7 +113,7 @@ export default function AddTaskModal({ templates, initial, onSave, onClose, plan
                       else setFieldsData(initial?.template_id === t.id ? indexFromNames(t.fields, initial?.fields_data) : {});
                     }}
                   >
-                    <span className="tpl-pick-icon">{t.icon}</span>
+                    <span className="tpl-pick-icon"><TemplateIcon icon={t.icon} color={t.color} /></span>
                     <span className="tpl-pick-name">{t.name}</span>
                   </button>
                 ))}

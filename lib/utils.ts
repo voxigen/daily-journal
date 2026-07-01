@@ -87,4 +87,3 @@ export function compressImage(file: File, maxSize = 1200, quality = 0.8): Promis
 }
 
 export const COLORS = ['#7c6ff7','#34d399','#fbbf24','#60a5fa','#f87171','#a78bfa','#fb7185','#2dd4bf'];
-export const ICONS  = ['📋','💪','📚','💻','🎯','🏃','🍎','✍️','🎨','🔧','📞','🧠','🌿','💰','🎵','🤝'];

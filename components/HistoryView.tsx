@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
+import TemplateIcon from './TemplateIcon';
 import { formatDateRu, formatDuration } from '@/lib/utils';
 import { CalendarDays, Clock } from 'lucide-react';
 
@@ -43,7 +44,7 @@ export default function HistoryView({ days, totalDays, totalTasks }: { days: Day
                 {day.tasks.slice(0, 4).map((t, i) => (
                   <div key={i} className="hist-task">
                     <span className="hist-task-dot" style={{ background: t.template_color ?? 'var(--accent)' }} />
-                    {t.template_icon && <span className="hist-task-emoji">{t.template_icon}</span>}
+                    {t.template_icon && <span className="hist-task-emoji"><TemplateIcon icon={t.template_icon} color={t.template_color} /></span>}
                     <span className="hist-task-label">{t.title}</span>
                   </div>
                 ))}

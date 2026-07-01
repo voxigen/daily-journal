@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { COLORS, ICONS } from '@/lib/utils';
+import { COLORS } from '@/lib/utils';
+import TemplateIcon, { ICON_KEYS } from './TemplateIcon';
 import { Plus, X, Check } from 'lucide-react';
 
 type Field = { name: string; placeholder: string; type: string };
@@ -16,7 +17,7 @@ type Props = {
 export default function TemplateModal({ initial, onSave, onClose }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [color, setColor] = useState(initial?.color ?? COLORS[0]);
-  const [icon, setIcon] = useState(initial?.icon ?? ICONS[0]);
+  const [icon, setIcon] = useState(initial?.icon ?? ICON_KEYS[0]);
   const [fields, setFields] = useState<Field[]>(initial?.fields ?? []);
   const [saving, setSaving] = useState(false);
 
@@ -52,8 +53,10 @@ export default function TemplateModal({ initial, onSave, onClose }: Props) {
           <div className="field">
             <label>Иконка</label>
             <div className="icon-row">
-              {ICONS.map((ic) => (
-                <button key={ic} type="button" className={`icon-pick${icon === ic ? ' active' : ''}`} onClick={() => setIcon(ic)}>{ic}</button>
+              {ICON_KEYS.map((key) => (
+                <button key={key} type="button" className={`icon-pick${icon === key ? ' active' : ''}`} onClick={() => setIcon(key)}>
+                  <TemplateIcon icon={key} />
+                </button>
               ))}
             </div>
           </div>

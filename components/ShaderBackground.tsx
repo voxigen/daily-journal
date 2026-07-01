@@ -102,7 +102,11 @@ void main(){
 
   e = clamp(e, 0.0, 1.0);
   float k = uMix * (0.28 + 0.72*e);
-  gl_FragColor = vec4(mix(uC, fx, k), 1.0);
+  vec3 outc = mix(uC, fx, k);
+  // Triangular dither to break up 8-bit banding in the smooth gradients (the
+  // "contour steps" that show up in the nebula on desktop displays).
+  float dz = (hash(gl_FragCoord.xy) + hash(gl_FragCoord.xy + 17.3) - 1.0) * (1.6/255.0);
+  gl_FragColor = vec4(outc + dz, 1.0);
 }`;
 
 function hexToRgb(hex: string): [number, number, number] {

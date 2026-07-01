@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import TemplateModal from './TemplateModal';
+import TemplateIcon from './TemplateIcon';
 import AppShell from './AppShell';
 import { Plus, Pencil, Trash2, LayoutGrid, ChevronRight } from 'lucide-react';
 
@@ -53,7 +54,7 @@ export default function TemplatesView({ userId, initialTemplates }: { userId: st
         <div className="tpl-list">
           {templates.map((t) => (
             <div key={t.id} className="tpl-row clickable" onClick={() => router.push(`/templates/${t.id}`)}>
-              <div className="tpl-row-icon">{t.icon}</div>
+              <div className="tpl-row-icon"><TemplateIcon icon={t.icon} color={t.color} /></div>
               <div className="tpl-row-info">
                 <div className="tpl-row-name" style={{ color: t.color }}>{t.name}</div>
                 <div className="tpl-row-meta">

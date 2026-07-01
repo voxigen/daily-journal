@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
+import TemplateIcon from './TemplateIcon';
 import { formatDuration, formatDateShort } from '@/lib/utils';
 import { ChevronLeft, Clock, Hash, CalendarClock, TrendingUp, ChartColumnBig, ListChecks } from 'lucide-react';
 
@@ -113,7 +114,7 @@ export default function TemplateDashboard({ template, tasks, today }: Props) {
       </button>
 
       <div className="dash-hero">
-        <span className="dash-hero-icon" style={{ background: `${color}1f` }}>{template.icon}</span>
+        <span className="dash-hero-icon" style={{ background: `${color}1f` }}><TemplateIcon icon={template.icon} color={color} /></span>
         <div>
           <div className="dash-hero-name" style={{ color }}>{template.name}</div>
           <div className="dash-hero-meta">

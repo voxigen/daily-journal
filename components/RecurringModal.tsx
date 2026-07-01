@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import TemplateIcon from './TemplateIcon';
 import { X } from 'lucide-react';
 
 type Template = {
@@ -76,7 +77,7 @@ export default function RecurringModal({ templates, onSave, onClose }: Props) {
                     className={`tpl-pick${selected?.id === t.id ? ' sel' : ''}`}
                     onClick={() => setSelected(selected?.id === t.id ? null : t)}
                   >
-                    <span className="tpl-pick-icon">{t.icon}</span>
+                    <span className="tpl-pick-icon"><TemplateIcon icon={t.icon} color={t.color} /></span>
                     <span className="tpl-pick-name">{t.name}</span>
                   </button>
                 ))}

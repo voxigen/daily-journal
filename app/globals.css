@@ -655,6 +655,13 @@ textarea { min-height: 84px; line-height: 1.6; }
 :root[data-surface='glass'] .topbar, :root[data-surface='matte'] .topbar {
   border-bottom-color: color-mix(in srgb, var(--text) 12%, transparent);
 }
+/* Inputs shouldn't be solid-black boxes inside frosted cards — make them glassy too */
+:root[data-surface='glass'] input:not(.meal-name):not(.range), :root[data-surface='glass'] textarea, :root[data-surface='glass'] select, :root[data-surface='glass'] .day-textarea {
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+}
+:root[data-surface='matte'] input:not(.meal-name):not(.range), :root[data-surface='matte'] textarea, :root[data-surface='matte'] select, :root[data-surface='matte'] .day-textarea {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
 
 /* ── Experimental tile FX (data-tilefx) — decorative overlay on cards ── */
 :root[data-tilefx='crack'] .metric, :root[data-tilefx='crack'] .task-list, :root[data-tilefx='crack'] .meal, :root[data-tilefx='crack'] .chart-card, :root[data-tilefx='crack'] .setting-card, :root[data-tilefx='crack'] .tpl-list, :root[data-tilefx='crack'] .hist-day, :root[data-tilefx='crack'] .callout,
@@ -662,12 +669,16 @@ textarea { min-height: 84px; line-height: 1.6; }
   position: relative;
 }
 :root[data-tilefx='crack'] .metric::after, :root[data-tilefx='crack'] .task-list::after, :root[data-tilefx='crack'] .meal::after, :root[data-tilefx='crack'] .chart-card::after, :root[data-tilefx='crack'] .setting-card::after, :root[data-tilefx='crack'] .tpl-list::after, :root[data-tilefx='crack'] .hist-day::after, :root[data-tilefx='crack'] .callout::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0.30;
-  background: var(--accent);
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 55%, transparent));
-  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='220'%20height='220'%3E%3Cg%20fill='none'%20stroke='%23fff'%3E%3Cg%20stroke-width='1.1'%3E%3Cpath%20d='M18%2012%20L48%2052%20L42%2092%20L70%20128%20L58%20178%20L86%20220'/%3E%3Cpath%20d='M150%200%20L138%2044%20L164%2080%20L149%20128%20L176%20162%20L162%20220'/%3E%3Cpath%20d='M0%20148%20L44%20136%20L80%20158%20L118%20148%20L158%20172%20L220%20160'/%3E%3Cpath%20d='M204%2036%20L178%2066%20L206%2096%20L188%20132'/%3E%3C/g%3E%3Cg%20stroke-width='0.6'%3E%3Cpath%20d='M48%2052%20L84%2058'/%3E%3Cpath%20d='M42%2092%20L14%20104'/%3E%3Cpath%20d='M70%20128%20L104%20138'/%3E%3Cpath%20d='M58%20178%20L30%20192'/%3E%3Cpath%20d='M138%2044%20L170%2038'/%3E%3Cpath%20d='M164%2080%20L128%2092'/%3E%3Cpath%20d='M149%20128%20L184%20136'/%3E%3Cpath%20d='M80%20158%20L90%20194'/%3E%3Cpath%20d='M118%20148%20L126%20118'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 220px 220px repeat;
-  mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='220'%20height='220'%3E%3Cg%20fill='none'%20stroke='%23fff'%3E%3Cg%20stroke-width='1.1'%3E%3Cpath%20d='M18%2012%20L48%2052%20L42%2092%20L70%20128%20L58%20178%20L86%20220'/%3E%3Cpath%20d='M150%200%20L138%2044%20L164%2080%20L149%20128%20L176%20162%20L162%20220'/%3E%3Cpath%20d='M0%20148%20L44%20136%20L80%20158%20L118%20148%20L158%20172%20L220%20160'/%3E%3Cpath%20d='M204%2036%20L178%2066%20L206%2096%20L188%20132'/%3E%3C/g%3E%3Cg%20stroke-width='0.6'%3E%3Cpath%20d='M48%2052%20L84%2058'/%3E%3Cpath%20d='M42%2092%20L14%20104'/%3E%3Cpath%20d='M70%20128%20L104%20138'/%3E%3Cpath%20d='M58%20178%20L30%20192'/%3E%3Cpath%20d='M138%2044%20L170%2038'/%3E%3Cpath%20d='M164%2080%20L128%2092'/%3E%3Cpath%20d='M149%20128%20L184%20136'/%3E%3Cpath%20d='M80%20158%20L90%20194'/%3E%3Cpath%20d='M118%20148%20L126%20118'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 220px 220px repeat;
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, var(--accent), #a78bfa, var(--blue), #2dd4bf, #e64d80, var(--accent));
+  background-size: 300% 100%;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 60%, transparent));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cg%20fill='none'%20stroke='%23fff'%20stroke-linecap='round'%3E%3Cg%20stroke-width='1.4'%3E%3Cpath%20d='M20%208%20C42%2048%2028%2082%2056%20112%20C78%20138%2060%20172%2088%20220'/%3E%3Cpath%20d='M150%200%20C134%2042%20168%2070%20150%20122%20C136%20158%20178%20178%20160%20240'/%3E%3Cpath%20d='M0%20150%20C48%20134%2072%20168%20120%20150%20C162%20138%20192%20176%20240%20160'/%3E%3C/g%3E%3Cg%20stroke-width='0.7'%3E%3Cpath%20d='M56%20112%20Q90%20118%2096%20150'/%3E%3Cpath%20d='M28%2082%20Q10%2096%206%20120'/%3E%3Cpath%20d='M150%20122%20Q184%20130%20200%20108'/%3E%3Cpath%20d='M120%20150%20Q128%20116%20108%2096'/%3E%3Cpath%20d='M88%20220%20Q60%20200%2044%20210'/%3E%3Cpath%20d='M168%2070%20Q196%2060%20214%2078'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 240px 240px repeat;
+  mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cg%20fill='none'%20stroke='%23fff'%20stroke-linecap='round'%3E%3Cg%20stroke-width='1.4'%3E%3Cpath%20d='M20%208%20C42%2048%2028%2082%2056%20112%20C78%20138%2060%20172%2088%20220'/%3E%3Cpath%20d='M150%200%20C134%2042%20168%2070%20150%20122%20C136%20158%20178%20178%20160%20240'/%3E%3Cpath%20d='M0%20150%20C48%20134%2072%20168%20120%20150%20C162%20138%20192%20176%20240%20160'/%3E%3C/g%3E%3Cg%20stroke-width='0.7'%3E%3Cpath%20d='M56%20112%20Q90%20118%2096%20150'/%3E%3Cpath%20d='M28%2082%20Q10%2096%206%20120'/%3E%3Cpath%20d='M150%20122%20Q184%20130%20200%20108'/%3E%3Cpath%20d='M120%20150%20Q128%20116%20108%2096'/%3E%3Cpath%20d='M88%20220%20Q60%20200%2044%20210'/%3E%3Cpath%20d='M168%2070%20Q196%2060%20214%2078'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / 240px 240px repeat;
+  animation: crackflow 7s linear infinite, crackpulse 3.6s ease-in-out infinite;
 }
+@keyframes crackflow { from { background-position: 0% 0; } to { background-position: 300% 0; } }
+@keyframes crackpulse { 0%,100% { opacity: 0.5; } 50% { opacity: 0.8; } }
 :root[data-tilefx='neon'] .metric, :root[data-tilefx='neon'] .task-list, :root[data-tilefx='neon'] .meal, :root[data-tilefx='neon'] .chart-card, :root[data-tilefx='neon'] .setting-card, :root[data-tilefx='neon'] .tpl-list, :root[data-tilefx='neon'] .hist-day, :root[data-tilefx='neon'] .callout {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 26%, transparent) !important;

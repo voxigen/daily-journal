@@ -90,6 +90,20 @@ create policy "own templates"  on templates  using (auth.uid() = user_id) with c
 create policy "own days"       on daily_days using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own tasks"      on day_tasks  using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Словарь для интервального повторения английского (FSRS-карта хранится целиком в jsonb)
+create table if not exists vocab_cards (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users not null,
+  en         text not null,
+  ru         text not null,
+  due        timestamptz not null default now(),  -- продублировано из fsrs для выборки «к повторению»
+  fsrs       jsonb,                                -- сериализованная ts-fsrs Card
+  created_at timestamptz default now()
+);
+create index if not exists vocab_due_idx on vocab_cards (user_id, due);
+alter table vocab_cards enable row level security;
+create policy "own vocab" on vocab_cards using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- Storage bucket для фото (выполни отдельно или создай вручную)
 -- insert into storage.buckets (id, name, public) values ('day-photos', 'day-photos', false);
 -- create policy "own photos upload" on storage.objects for insert with check (bucket_id = 'day-photos' and auth.uid()::text = (storage.foldername(name))[1]);

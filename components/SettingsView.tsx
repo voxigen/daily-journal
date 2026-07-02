@@ -42,6 +42,8 @@ const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
   { key: 'constellation', label: 'Созвездие' },
   { key: 'nebula', label: 'Туманность' },
+  { key: 'galaxy', label: 'Галактика' },
+  { key: 'ink', label: 'Чернила' },
   { key: 'warp', label: 'Гиперпрыжок' },
   { key: 'bokeh', label: 'Пузыри' },
   { key: 'particles', label: 'Частицы' },

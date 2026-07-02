@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import AppShell from './AppShell';
 import { schedule, newCardFields, isNewCard, Rating, type StoredCard } from '@/lib/fsrs';
-import { Volume2, Upload, Plus, GraduationCap, Check, X, ArrowRight, Trash2 } from 'lucide-react';
+import { Volume2, Upload, Plus, GraduationCap, Check, X, ArrowRight, Trash2, Pencil, PartyPopper } from 'lucide-react';
 
 type Row = { id: string; en: string; ru: string; due: string; fsrs: StoredCard | null };
 type Method = 'en_ru' | 'ru_en' | 'type';
@@ -38,6 +38,9 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
   const [msg, setMsg] = useState('');
   const [addEn, setAddEn] = useState('');
   const [addRu, setAddRu] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editEn, setEditEn] = useState('');
+  const [editRu, setEditRu] = useState('');
 
   const [task, setTask] = useState<Task | null>(null);
   const [phase, setPhase] = useState<'ask' | 'right' | 'wrong'>('ask');
@@ -66,6 +69,16 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
   async function deleteWord(id: string) {
     setCards((p) => p.filter((c) => c.id !== id));
     await supabase.from('vocab_cards').delete().eq('id', id);
+  }
+
+  function startEdit(c: Row) { setEditId(c.id); setEditEn(c.en); setEditRu(c.ru); }
+  async function saveEdit() {
+    const en = editEn.trim(), ru = editRu.trim();
+    if (!editId || !en || !ru) { setEditId(null); return; }
+    const id = editId;
+    setCards((p) => p.map((c) => (c.id === id ? { ...c, en, ru } : c)));
+    setEditId(null);
+    await supabase.from('vocab_cards').update({ en, ru }).eq('id', id);
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -146,7 +159,9 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
       ru: pick.w.row.ru,
     });
     setPhase('ask'); setChosen(null); setInput('');
-    if (method !== 'ru_en') window.setTimeout(() => speak(pick.w.row.en), 180);
+    // Only auto-speak when English is the prompt (en_ru). For recall modes (ru_en,
+    // type) speaking it aloud would give the answer away — use the 🔊 button.
+    if (method === 'en_ru') window.setTimeout(() => speak(pick.w.row.en), 180);
   }
 
   function grade(correct: boolean) {
@@ -219,7 +234,7 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
     return (
       <AppShell title="Английский">
         <div className="learn-done">
-          <div className="learn-done-emoji">🎉</div>
+          <div className="learn-done-icon"><PartyPopper /></div>
           <div className="empty-title">Сессия завершена</div>
           <p>Выучено новых: {doneRef.current.learned} · Повторено: {doneRef.current.reviewed}</p>
           <div className="save-row" style={{ justifyContent: 'center' }}>
@@ -271,16 +286,30 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
           <div className="section-head"><span className="section-label">Слова ({cards.length})</span></div>
           <div className="tpl-list">
             {cards.slice(0, 60).map((c) => (
-              <div key={c.id} className="tpl-row">
-                <div className="tpl-row-info">
-                  <div className="tpl-row-name">{c.en}</div>
-                  <div className="tpl-row-meta">{c.ru}</div>
+              editId === c.id ? (
+                <div key={c.id} className="tpl-row">
+                  <div className="learn-add" style={{ flex: 1 }}>
+                    <input value={editEn} maxLength={100} onChange={(e) => setEditEn(e.target.value)} placeholder="English" />
+                    <input value={editRu} maxLength={100} onChange={(e) => setEditRu(e.target.value)} placeholder="Перевод" />
+                  </div>
+                  <div className="tpl-row-actions">
+                    <button className="icon-btn" onClick={saveEdit} aria-label="Сохранить"><Check className="icon-sm" /></button>
+                    <button className="icon-btn" onClick={() => setEditId(null)} aria-label="Отмена"><X className="icon-sm" /></button>
+                  </div>
                 </div>
-                <div className="tpl-row-actions">
-                  <button className="icon-btn" onClick={() => speak(c.en)} aria-label="Озвучить"><Volume2 className="icon-sm" /></button>
-                  <button className="icon-btn danger" onClick={() => deleteWord(c.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
+              ) : (
+                <div key={c.id} className="tpl-row">
+                  <div className="tpl-row-info">
+                    <div className="tpl-row-name">{c.en}</div>
+                    <div className="tpl-row-meta">{c.ru}</div>
+                  </div>
+                  <div className="tpl-row-actions">
+                    <button className="icon-btn" onClick={() => speak(c.en)} aria-label="Озвучить"><Volume2 className="icon-sm" /></button>
+                    <button className="icon-btn" onClick={() => startEdit(c)} aria-label="Изменить"><Pencil className="icon-sm" /></button>
+                    <button className="icon-btn danger" onClick={() => deleteWord(c.id)} aria-label="Удалить"><Trash2 className="icon-sm" /></button>
+                  </div>
                 </div>
-              </div>
+              )
             ))}
           </div>
           {cards.length > 60 && <div className="setting-hint">…и ещё {cards.length - 60}</div>}

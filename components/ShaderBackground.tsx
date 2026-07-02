@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { nebula: 0 };
+const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -68,38 +68,82 @@ void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;
   float t = uTime;
 
-  // ── Nebula: drifting cosmic clouds ──
-  vec2 q = uv*1.5;
-  float tt = t*0.045;
-  float w  = fbm(q + vec2(tt, -tt));
-  float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
-  float d  = fbm(q + 2.6*vec2(w, w2));
-  d = pow(clamp(d, 0.0, 1.0), 1.35);
-  // Stars + comets (shared by both themes).
-  float s = 0.0;
-  s += starField(uv, 20.0, 2.0, 0.86, t);
-  s += starField(uv, 34.0, 3.2, 0.93, t) * 0.8;
-  s += starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t) * 0.9;
-  float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
-
+  bool light = uMix < 0.7;
   vec3 outc;
-  if (uMix > 0.7) {
-    // Dark theme — vivid deep-space nebula.
-    vec3 c1 = vec3(0.03, 0.04, 0.14);
-    vec3 c3 = vec3(0.95, 0.25, 0.5);
-    vec3 col = mix(c1, uA, smoothstep(0.08, 0.62, d));
-    col = mix(col, c3, smoothstep(0.50, 0.98, d));
-    col += vec3(0.92, 0.95, 1.0) * (s + shoot);
-    float e = clamp(smoothstep(0.06, 0.85, d) + s + shoot, 0.0, 1.0);
-    outc = mix(uC, col, uMix * (0.30 + 0.70*e));
+
+  if (uMode < 0.5) {
+    // ── Nebula: drifting cosmic clouds ──
+    vec2 q = uv*1.5;
+    float tt = t*0.045;
+    float w  = fbm(q + vec2(tt, -tt));
+    float w2 = fbm(q*1.25 + 3.0*w + vec2(-tt*1.3, tt));
+    float d  = fbm(q + 2.6*vec2(w, w2));
+    d = pow(clamp(d, 0.0, 1.0), 1.35);
+    float s = starField(uv, 20.0, 2.0, 0.86, t) + starField(uv, 34.0, 3.2, 0.93, t)*0.8
+            + starField(uv + vec2(t*0.010, t*0.004), 26.0, 1.4, 0.90, t)*0.9;
+    float shoot = comet(uv, t, 0.0) + comet(uv, t, 0.5);
+    if (!light) {
+      vec3 c1 = vec3(0.03, 0.04, 0.14);
+      vec3 c3 = vec3(0.95, 0.25, 0.5);
+      vec3 col = mix(c1, uA, smoothstep(0.08, 0.62, d));
+      col = mix(col, c3, smoothstep(0.50, 0.98, d));
+      col += vec3(0.92, 0.95, 1.0) * (s + shoot);
+      float e = clamp(smoothstep(0.06, 0.85, d) + s + shoot, 0.0, 1.0);
+      outc = mix(uC, col, uMix * (0.30 + 0.70*e));
+    } else {
+      vec3 soft1 = mix(uC, uA, 0.30);
+      vec3 soft2 = mix(uC, vec3(0.93, 0.42, 0.58), 0.42);
+      vec3 col = mix(uC, soft1, smoothstep(0.04, 0.60, d));
+      col = mix(col, soft2, smoothstep(0.52, 0.96, d));
+      col = mix(col, uA * 0.55, clamp((s + shoot) * 0.6, 0.0, 0.5));
+      outc = col;
+    }
+  } else if (uMode < 1.5) {
+    // ── Galaxy: rotating spiral with a bright core ──
+    float tt = t*0.05;
+    vec2 p = uv * vec2(1.0, 1.4);
+    float r = length(p);
+    float a = atan(p.y, p.x) + tt;
+    float arm = sin(a*2.0 + log(r + 0.06)*7.0);
+    float arms = smoothstep(0.1, 0.9, arm) * smoothstep(1.15, 0.06, r);
+    arms *= 0.45 + 0.75*fbm(p*3.0 + vec2(a, r*4.0));
+    float core = exp(-r*r*11.0);
+    float halo = exp(-r*r*2.4) * 0.4;
+    float st = starField(uv, 22.0, 2.2, 0.88, t) + starField(uv, 40.0, 3.4, 0.95, t)*0.7;
+    float field = clamp(arms, 0.0, 1.0);
+    if (!light) {
+      vec3 col = uC;
+      col = mix(col, mix(uA, uB, 0.5), field*0.9);
+      col += vec3(1.0, 0.92, 0.78) * (core + halo);
+      col += vec3(0.9, 0.3, 0.5) * clamp(field - 0.5, 0.0, 1.0) * 0.35;
+      col += vec3(0.85, 0.92, 1.0) * st;
+      outc = col;
+    } else {
+      vec3 col = uC;
+      col = mix(col, mix(uC, uA, 0.62), field*0.55);
+      col = mix(col, mix(uC, vec3(0.98, 0.66, 0.35), 0.6), (core + halo)*0.7);
+      col = mix(col, uA*0.5, st*0.5);
+      outc = col;
+    }
   } else {
-    // Light theme — soft airy pastel clouds on the light page.
-    vec3 soft1 = mix(uC, uA, 0.30);
-    vec3 soft2 = mix(uC, vec3(0.93, 0.42, 0.58), 0.42);
-    vec3 col = mix(uC, soft1, smoothstep(0.04, 0.60, d));
-    col = mix(col, soft2, smoothstep(0.52, 0.96, d));
-    col = mix(col, uA * 0.55, clamp((s + shoot) * 0.6, 0.0, 0.5));
-    outc = col;
+    // ── Ink: flowing tendrils in water ──
+    float tt = t*0.04;
+    vec2 p = uv*2.0;
+    float w1 = fbm(p + vec2(tt, tt*0.7));
+    float w2 = fbm(p*1.4 + 4.0*w1 + vec2(-tt, tt*1.3));
+    float ink = fbm(p*1.1 + 3.0*vec2(w1, w2) + tt);
+    ink = pow(clamp(ink, 0.0, 1.0), 2.0);
+    float edge = smoothstep(0.35, 0.5, ink) - smoothstep(0.5, 0.72, ink);
+    if (!light) {
+      vec3 col = mix(uC, mix(uA, uB, 0.4), smoothstep(0.2, 0.7, ink));
+      col += mix(uA, vec3(0.95, 0.3, 0.55), 0.5) * edge * 1.2;
+      col = mix(col, vec3(0.9, 0.92, 1.0), pow(ink, 4.0)*0.3);
+      outc = col;
+    } else {
+      vec3 col = mix(uC, mix(uC, uA, 0.7), smoothstep(0.15, 0.7, ink));
+      col = mix(col, mix(uC, vec3(0.9, 0.4, 0.55), 0.6), edge*0.6);
+      outc = col;
+    }
   }
 
   // Interleaved-gradient-noise dither — stable on mobile GPUs (no huge sin args).

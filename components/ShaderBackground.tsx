@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2 };
+const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2, aurora: 3, vortex: 4, plasma: 5 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -101,31 +101,31 @@ void main(){
   } else if (uMode < 1.5) {
     // ── Galaxy: rotating spiral with a bright core ──
     float tt = t*0.05;
-    vec2 p = uv * vec2(1.0, 1.4);
+    vec2 p = uv * vec2(1.0, 1.35);
     float r = length(p);
     float a = atan(p.y, p.x) + tt;
-    float arm = sin(a*2.0 + log(r + 0.06)*7.0);
-    float arms = smoothstep(0.1, 0.9, arm) * smoothstep(1.15, 0.06, r);
-    arms *= 0.45 + 0.75*fbm(p*3.0 + vec2(a, r*4.0));
-    float core = exp(-r*r*11.0);
-    float halo = exp(-r*r*2.4) * 0.4;
-    float st = starField(uv, 22.0, 2.2, 0.88, t) + starField(uv, 40.0, 3.4, 0.95, t)*0.7;
+    float arm = sin(a*2.0 + log(r + 0.05)*7.0);
+    float arms = smoothstep(0.15, 0.95, arm) * smoothstep(1.1, 0.05, r);
+    arms *= 0.4 + 0.7*fbm(p*3.5 + vec2(tt*2.0, r*5.0));   // cartesian noise — no atan seam
+    float core = exp(-r*r*16.0);
+    float halo = exp(-r*r*4.5) * 0.22;                    // tighter, dimmer glow
+    float st = starField(uv, 22.0, 2.2, 0.9, t) + starField(uv, 40.0, 3.4, 0.96, t)*0.6;
     float field = clamp(arms, 0.0, 1.0);
     if (!light) {
-      vec3 col = uC;
-      col = mix(col, mix(uA, uB, 0.5), field*0.9);
-      col += mix(vec3(1.0), uA, 0.45) * (core + halo);   // bright accent-tinted core (not yellow)
-      col += vec3(0.9, 0.3, 0.5) * clamp(field - 0.5, 0.0, 1.0) * 0.35;
+      vec3 armCol = mix(uA, vec3(0.92, 0.3, 0.55), 0.35);
+      vec3 col = mix(uC, armCol, field);                  // saturated arms (less washed out)
+      col += mix(vec3(1.0), uA, 0.55) * core;             // tight accent-white core
+      col += uA * halo;                                   // accent halo (not warm white)
       col += vec3(0.85, 0.92, 1.0) * st;
       outc = col;
     } else {
-      vec3 col = uC;
-      col = mix(col, mix(uC, uA, 0.62), field*0.55);
-      col = mix(col, mix(uC, uA, 0.8), (core + halo)*0.7);
+      vec3 col = mix(uC, mix(uC, uA, 0.7), field*0.7);
+      col = mix(col, mix(uC, uA, 0.85), core*0.8);
+      col = mix(col, mix(uC, uA, 0.4), halo);
       col = mix(col, uA*0.5, st*0.5);
       outc = col;
     }
-  } else {
+  } else if (uMode < 2.5) {
     // ── Ink: flowing tendrils in water ──
     float tt = t*0.04;
     vec2 p = uv*2.0;
@@ -143,6 +143,65 @@ void main(){
       vec3 col = mix(uC, mix(uC, uA, 0.7), smoothstep(0.15, 0.7, ink));
       col = mix(col, mix(uC, vec3(0.9, 0.4, 0.55), 0.6), edge*0.6);
       outc = col;
+    }
+  } else if (uMode < 3.5) {
+    // ── Aurora: flowing light curtains ──
+    float tt = t*0.15;
+    float au = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float fi = float(i);
+      float x = uv.x*1.3 + fi*2.1;
+      float base = -0.25 + fbm(vec2(x*0.7, tt*1.3 + fi*3.0))*0.6 + 0.12*sin(uv.x*2.4 + t*0.4 + fi);
+      float curtain = exp(-abs(uv.y - base)*3.2);
+      float up = smoothstep(-0.55, 0.4, uv.y);
+      float flick = 0.5 + 0.5*fbm(vec2(x*2.0, t*0.6 + fi*4.0));
+      au += curtain * up * flick * (0.6 - fi*0.1);
+    }
+    au = clamp(au, 0.0, 1.0);
+    float st = starField(uv, 26.0, 2.5, 0.93, t) * smoothstep(-0.1, 0.6, uv.y);
+    vec3 aurCol = mix(vec3(0.15, 0.95, 0.55), vec3(0.5, 0.25, 0.95), smoothstep(-0.1, 0.55, uv.y));
+    aurCol = mix(aurCol, uA, 0.25);
+    if (!light) {
+      vec3 col = uC;
+      col += aurCol * au;
+      col += vec3(0.9, 0.95, 1.0) * st * 0.6;
+      outc = col;
+    } else {
+      outc = mix(uC, mix(uC, aurCol, 0.75), au*0.7);
+    }
+  } else if (uMode < 4.5) {
+    // ── Vortex: swirling spiral ──
+    float r = length(uv);
+    float a = atan(uv.y, uv.x);
+    float swirl = a*3.0 + r*7.0 - t*0.5;
+    float band = 0.5 + 0.5*sin(swirl + fbm(uv*3.0 + t*0.1)*3.0);
+    band *= smoothstep(1.4, 0.05, r);
+    float glow = exp(-r*r*3.5);
+    if (!light) {
+      vec3 col = mix(uC, mix(uA, uB, 0.5), band);
+      col = mix(col, vec3(0.95, 0.3, 0.55), pow(band, 3.0)*0.5);
+      col += mix(vec3(1.0), uA, 0.5) * glow * 0.6;
+      outc = col;
+    } else {
+      vec3 col = mix(uC, mix(uC, uA, 0.7), band*0.8);
+      col = mix(col, mix(uC, vec3(0.9, 0.4, 0.55), 0.6), pow(band, 3.0)*0.5);
+      col = mix(col, mix(uC, uA, 0.85), glow*0.6);
+      outc = col;
+    }
+  } else {
+    // ── Plasma: flowing energy field ──
+    float tt = t*0.25;
+    float v = sin(uv.x*3.0 + tt) + sin(uv.y*3.2 - tt*1.1) + sin((uv.x + uv.y)*2.4 + tt*0.7);
+    v = (v + 2.0*fbm(uv*1.8 + tt*0.5)) * 0.9;
+    float c1 = 0.5 + 0.5*sin(v*3.14159);
+    float c2 = 0.5 + 0.5*sin(v*3.14159 + 2.094);
+    if (!light) {
+      vec3 col = mix(uA, uB, c1);
+      col = mix(col, vec3(0.95, 0.3, 0.55), c2*0.55);
+      outc = mix(uC, col, 0.55 + 0.45*fbm(uv*3.0 + tt));
+    } else {
+      vec3 col = mix(mix(uC, uA, 0.6), mix(uC, uB, 0.6), c1);
+      outc = mix(col, mix(uC, vec3(0.92, 0.42, 0.58), 0.6), c2*0.4);
     }
   }
 

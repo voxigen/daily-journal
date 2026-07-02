@@ -94,10 +94,24 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
     drone(220, 'sine', 0.3);
     drone(330, 'triangle', 0.16, 8);
     noisePad(1500, 3, 0.32, 0.08, 700);
-  } else {                          // ink — watery, low and bubbly
+  } else if (key === 'ink') {      // watery, low and bubbly
     drone(70, 'sine', 0.5);
     drone(105, 'sine', 0.2, -5);
     noisePad(320, 5, 0.6, 0.13, 170);
+  } else if (key === 'aurora') {   // ethereal, high shimmer chord
+    drone(174, 'sine', 0.24);
+    drone(261, 'sine', 0.15, 7);
+    drone(392, 'triangle', 0.09, -6);
+    noisePad(2200, 2, 0.26, 0.07, 900);
+  } else if (key === 'vortex') {   // hypnotic swirl
+    drone(130, 'sine', 0.34);
+    drone(196, 'sawtooth', 0.07, 5);
+    noisePad(720, 6, 0.4, 0.17, 520);
+  } else {                          // plasma — full, energetic
+    drone(110, 'sine', 0.3);
+    drone(165, 'triangle', 0.17, 6);
+    drone(220, 'sine', 0.11, -4);
+    noisePad(1100, 3, 0.34, 0.2, 640);
   }
 
   const t = c.currentTime;
@@ -117,7 +131,7 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
 }
 
 export function setAmbient(bg: string) {
-  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink'].includes(bg)) { stopAmbient(); return; }
+  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink', 'aurora', 'vortex', 'plasma'].includes(bg)) { stopAmbient(); return; }
   const c = getCtx();
   if (!c || !master) return;
   if (ambient && ambient.key === bg) return;

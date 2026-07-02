@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2 } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2 } from 'lucide-react';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
 
@@ -59,6 +59,12 @@ const TILE_FX: { key: string; label: string }[] = [
   { key: 'holo', label: 'Голограмма' },
 ];
 
+const SOUNDS: { key: string; label: string }[] = [
+  { key: 'off', label: 'Выкл' },
+  { key: 'sfx', label: 'Эффекты' },
+  { key: 'full', label: 'Эффекты + фон' },
+];
+
 // IANA zones for the day-reset boundary. 'auto' resolves to the device zone.
 const TIMEZONES: { key: string; label: string }[] = [
   { key: 'auto', label: 'Авто (по устройству)' },
@@ -99,6 +105,7 @@ export default function SettingsView() {
   const [size, setSizeState] = useState('md');
   const [surface, setSurfaceState] = useState('solid');
   const [tilefx, setTilefxState] = useState('none');
+  const [sound, setSoundState] = useState('sfx');
   const [tz, setTzState] = useState('auto');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -113,6 +120,7 @@ export default function SettingsView() {
     setSizeState(document.documentElement.dataset.size || 'md');
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
     setTilefxState(document.documentElement.dataset.tilefx || 'none');
+    setSoundState(document.documentElement.dataset.sound || 'sfx');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);
 
@@ -167,6 +175,13 @@ export default function SettingsView() {
     setTilefxState(key);
     document.documentElement.dataset.tilefx = key;
     localStorage.setItem('tilefx', key);
+  }
+
+  function chooseSound(key: string) {
+    setSoundState(key);
+    document.documentElement.dataset.sound = key;
+    localStorage.setItem('sound', key);
+    window.dispatchEvent(new Event('soundchange'));
   }
 
   function chooseTz(key: string) {
@@ -268,6 +283,18 @@ export default function SettingsView() {
             ))}
           </div>
           <div className="setting-hint">Экспериментально: декоративный слой поверх карточек в цвете акцента.</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Volume2 /> Звук</span></div>
+        <div className="setting-card">
+          <div className="segment">
+            {SOUNDS.map((s) => (
+              <button key={s.key} className={sound === s.key ? 'sel' : ''} onClick={() => chooseSound(s.key)}>{s.label}</button>
+            ))}
+          </div>
+          <div className="setting-hint">«Эффекты» — звуки на действия. «Эффекты + фон» добавляет тихий эмбиент под анимированный фон (туманность, галактика, чернила). Запускается после первого касания.</div>
         </div>
       </div>
 

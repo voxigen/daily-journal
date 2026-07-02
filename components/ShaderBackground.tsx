@@ -114,14 +114,14 @@ void main(){
     if (!light) {
       vec3 col = uC;
       col = mix(col, mix(uA, uB, 0.5), field*0.9);
-      col += vec3(1.0, 0.92, 0.78) * (core + halo);
+      col += mix(vec3(1.0), uA, 0.45) * (core + halo);   // bright accent-tinted core (not yellow)
       col += vec3(0.9, 0.3, 0.5) * clamp(field - 0.5, 0.0, 1.0) * 0.35;
       col += vec3(0.85, 0.92, 1.0) * st;
       outc = col;
     } else {
       vec3 col = uC;
       col = mix(col, mix(uC, uA, 0.62), field*0.55);
-      col = mix(col, mix(uC, vec3(0.98, 0.66, 0.35), 0.6), (core + halo)*0.7);
+      col = mix(col, mix(uC, uA, 0.8), (core + halo)*0.7);
       col = mix(col, uA*0.5, st*0.5);
       outc = col;
     }
@@ -197,9 +197,10 @@ export default function ShaderBackground({ mode }: { mode: string }) {
     gl.uniform1f(uMode, MODES[mode] ?? 0);
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    // Nebula renders near full-res so stars/comets stay crisp; waves can be softer.
-    const scale = mode === 'nebula' ? 1.0 : 0.8;
-    const MAX_PIXELS = 3200000; // cap work on very large displays
+    // Full-res render — upscaling from a smaller buffer caused faint shimmer/aliasing
+    // artifacts on desktop. Cap total pixels so huge monitors still stay smooth.
+    const scale = 1.0;
+    const MAX_PIXELS = 4500000;
     function resize() {
       let w = window.innerWidth * dpr * scale;
       let h = window.innerHeight * dpr * scale;

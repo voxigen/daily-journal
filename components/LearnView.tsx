@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import AppShell from './AppShell';
 import { schedule, newCardFields, isNewCard, Rating, type StoredCard } from '@/lib/fsrs';
+import { sfx } from '@/lib/sound';
 import { Volume2, Upload, Plus, GraduationCap, Check, X, ArrowRight, Trash2, Pencil, PartyPopper } from 'lucide-react';
 
 type Row = { id: string; en: string; ru: string; due: string; fsrs: StoredCard | null };
@@ -169,6 +170,7 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
     const w = sessionRef.current[task.wIdx];
     if (correct) w.step += 1; else w.errors += 1;
     setPhase(correct ? 'right' : 'wrong');
+    sfx(correct ? 'correct' : 'wrong');
     speak(w.row.en);
     force((n) => n + 1);
   }
@@ -186,6 +188,7 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
       await supabase.from('vocab_cards').update({ due: sched.due, fsrs: sched.fsrs }).eq('id', w.row.id);
     }
     setCards((prev) => prev.map((c) => updated[c.id] ?? c));
+    sfx('success');
     setScreen('done');
   }
 

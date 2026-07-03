@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { NotebookPen } from 'lucide-react';
+import LogoIcon from '@/components/LogoIcon';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -42,7 +42,7 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <span className="auth-brand"><NotebookPen /></span>
+        <span className="auth-brand"><LogoIcon /></span>
         <h1 className="auth-title">Daily Journal</h1>
         <p className="auth-sub">
           {mode === 'login' ? 'Вход в дневник' : 'Создать аккаунт'}

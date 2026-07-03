@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2 } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2, Shapes } from 'lucide-react';
+import { LOGO_ICONS, LOGO_KEYS } from './LogoIcon';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
 
@@ -44,9 +45,6 @@ const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'nebula', label: 'Туманность' },
   { key: 'galaxy', label: 'Галактика' },
   { key: 'ink', label: 'Чернила' },
-  { key: 'aurora', label: 'Аврора' },
-  { key: 'vortex', label: 'Вихрь' },
-  { key: 'plasma', label: 'Плазма' },
   { key: 'warp', label: 'Гиперпрыжок' },
   { key: 'bokeh', label: 'Пузыри' },
   { key: 'particles', label: 'Частицы' },
@@ -57,9 +55,7 @@ const BACKGROUNDS: { key: string; label: string }[] = [
 // Experimental decorative overlay applied to the cards/tiles, separate from the block style.
 const TILE_FX: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
-  { key: 'crack', label: 'Трещины' },
   { key: 'neon', label: 'Неон' },
-  { key: 'holo', label: 'Голограмма' },
 ];
 
 const SOUNDS: { key: string; label: string }[] = [
@@ -109,6 +105,8 @@ export default function SettingsView() {
   const [surface, setSurfaceState] = useState('solid');
   const [tilefx, setTilefxState] = useState('none');
   const [sound, setSoundState] = useState('sfx');
+  const [logo, setLogoState] = useState('notebook');
+  const [customHex, setCustomHex] = useState('#5a63d8');
   const [tz, setTzState] = useState('auto');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -124,6 +122,8 @@ export default function SettingsView() {
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
     setTilefxState(document.documentElement.dataset.tilefx || 'none');
     setSoundState(document.documentElement.dataset.sound || 'sfx');
+    setLogoState(document.documentElement.dataset.logo || 'notebook');
+    setCustomHex(localStorage.getItem('accentCustom') || '#5a63d8');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);
 
@@ -142,11 +142,43 @@ export default function SettingsView() {
     }
   }
 
+  function darken(hex: string, f: number): string {
+    const h = hex.replace('#', '');
+    const s = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    const n = parseInt(s || '000000', 16);
+    const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f));
+    return '#' + ch.map((v) => v.toString(16).padStart(2, '0')).join('');
+  }
+
   function chooseAccent(key: string) {
     setAccentState(key);
-    document.documentElement.dataset.accent = key;
+    const r = document.documentElement;
+    r.dataset.accent = key;
+    r.style.removeProperty('--accent');
+    r.style.removeProperty('--accent-hover');
     localStorage.setItem('accent', key);
     window.dispatchEvent(new Event('bgchange'));
+  }
+
+  function chooseCustomAccent(hex: string) {
+    const r = document.documentElement;
+    const hover = darken(hex, 0.84);
+    r.dataset.accent = 'custom';
+    r.style.setProperty('--accent', hex);
+    r.style.setProperty('--accent-hover', hover);
+    localStorage.setItem('accent', 'custom');
+    localStorage.setItem('accentCustom', hex);
+    localStorage.setItem('accentCustomH', hover);
+    setAccentState('custom');
+    setCustomHex(hex);
+    window.dispatchEvent(new Event('bgchange'));
+  }
+
+  function chooseLogo(key: string) {
+    setLogoState(key);
+    document.documentElement.dataset.logo = key;
+    localStorage.setItem('logo', key);
+    window.dispatchEvent(new Event('logochange'));
   }
 
   function chooseBg(key: string) {
@@ -257,6 +289,31 @@ export default function SettingsView() {
                 {accent === a.key && <Check style={{ color: '#fff' }} />}
               </button>
             ))}
+            <label
+              className={`accent-sw accent-custom${accent === 'custom' ? ' sel' : ''}`}
+              style={accent === 'custom' ? { background: customHex, color: customHex } : undefined}
+              aria-label="Свой цвет"
+            >
+              {accent === 'custom' && <Check style={{ color: '#fff' }} />}
+              <input type="color" value={customHex} onChange={(e) => chooseCustomAccent(e.target.value)} />
+            </label>
+          </div>
+          <div className="setting-hint">Последний кружок — свой цвет: акцент применится ко всему приложению и логотипу.</div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><span className="section-label"><Shapes /> Иконка логотипа</span></div>
+        <div className="setting-card">
+          <div className="icon-row">
+            {LOGO_KEYS.map((key) => {
+              const Icon = LOGO_ICONS[key];
+              return (
+                <button key={key} type="button" className={`icon-pick${logo === key ? ' active' : ''}`} onClick={() => chooseLogo(key)}>
+                  <Icon />
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

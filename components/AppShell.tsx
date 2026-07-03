@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig, Settings, Languages } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import LogoIcon from './LogoIcon';
 
 type Props = { children: React.ReactNode; title?: string; subtitle?: string };
 
@@ -30,7 +31,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
     <div className="shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="brand-mark"><NotebookPen /></span>
+          <span className="brand-mark"><LogoIcon /></span>
           <span className="brand-name">Journal</span>
         </div>
         <nav className="sidebar-nav">
@@ -53,7 +54,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
             {subtitle && <div className="sub">{subtitle}</div>}
           </div>
           <div className="topbar-mobile-brand">
-            <span className="brand-mark"><NotebookPen /></span>
+            <span className="brand-mark"><LogoIcon /></span>
             <span className="brand-name">{title ?? 'Journal'}</span>
           </div>
           <div className="topbar-actions">

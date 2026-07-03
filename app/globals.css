@@ -387,6 +387,21 @@ textarea { min-height: 84px; line-height: 1.6; }
 .prod-row { display: flex; align-items: center; gap: 8px; }
 .prod-name { flex: 1; min-width: 0; }
 .prod-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 20px 0; }
+
+/* Narrow phones: shrink numeric columns so names/labels aren't squeezed */
+@media (max-width: 480px) {
+  .meal-item { gap: 5px; }
+  .mi-num-wrap { width: 58px; }
+  .mi-num-wrap:has(.mi-kcal) { width: 76px; }
+  .mi-num { padding-right: 20px; }
+  .mi-kcal { padding-right: 34px; }
+  .mi-unit { right: 6px; }
+  .mi-del { width: 24px; }
+  .mi-quick { padding: 8px; gap: 5px; }
+  .mi-quick-in { width: 64px; padding: 7px 7px; }
+  .prod-kpg { width: 94px; }
+  .prod-kpg input { padding-right: 42px; }
+}
 .meal-add-item { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; padding: 6px 0; background: none; border: none; color: var(--text-2); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: color 0.13s; }
 .meal-add-item svg { width: 15px; height: 15px; }
 .meal-add-item:hover { color: var(--accent); }
@@ -435,6 +450,11 @@ textarea { min-height: 84px; line-height: 1.6; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 15px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
 .sheet-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
 .sheet-body { padding: 0 20px; }
+/* dvh keeps the bottom sheet above the iOS Safari toolbar (vh overshoots it) */
+@supports (height: 100dvh) {
+  .overlay { height: calc(100dvh / var(--zoom)); }
+  .sheet { max-height: calc(92dvh / var(--zoom)); }
+}
 .field { margin-bottom: 15px; }
 .field label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
 

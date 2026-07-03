@@ -38,7 +38,7 @@ export default function ProductsModal({ products, onAdd, onEdit, onDelete, onClo
           <div className="prod-add">
             <input value={name} maxLength={80} placeholder="Название продукта" autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
             <div className="prod-kpg">
-              <input type="number" step="0.1" min="0" inputMode="decimal" placeholder="ккал/г" value={kpg} onChange={(e) => setKpg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+              <input type="number" step="0.1" min="0" inputMode="decimal" value={kpg} onChange={(e) => setKpg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
               <span className="prod-unit">ккал/г</span>
             </div>
             <button className="btn btn-primary" onClick={add} disabled={!canAdd} aria-label="Добавить"><Plus className="icon-sm" /></button>

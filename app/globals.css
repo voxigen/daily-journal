@@ -355,7 +355,9 @@ textarea { min-height: 84px; line-height: 1.6; }
 .mi-ac { position: relative; flex: 1; min-width: 0; }
 .mi-name { width: 100%; }
 .mi-num-wrap { position: relative; width: 76px; flex-shrink: 0; }
+.mi-num-wrap:has(.mi-kcal) { width: 92px; }
 .mi-num { width: 100%; padding-right: 26px; text-align: right; }
+.mi-kcal { padding-right: 40px; }
 .mi-num::-webkit-outer-spin-button, .mi-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .mi-unit { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 10.5px; color: var(--text-3); pointer-events: none; }
 

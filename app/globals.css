@@ -137,7 +137,7 @@ body { background: transparent; }
 }
 
 /* WebGL shader canvas (nebula/waves) + constellation network canvas */
-.bg-shader, .bg-net { position: fixed; top: 0; left: 0; width: calc(100vw / var(--zoom)); height: calc(100vh / var(--zoom)); z-index: -1; pointer-events: none; display: block; transform: translateZ(0); }
+.bg-shader, .bg-net { position: fixed; top: 0; left: 0; width: calc(100vw / var(--zoom)); height: calc(100vh / var(--zoom)); z-index: -1; pointer-events: none; display: block; transform: translateZ(0); will-change: transform; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -677,6 +677,18 @@ textarea { min-height: 84px; line-height: 1.6; }
   radial-gradient(circle at 32% 66%, #e64d80, transparent 42%),
   radial-gradient(circle at 50% 50%, var(--blue), transparent 55%),
   #08080e; }
+.bg-prev.aurora { background:
+  linear-gradient(115deg, transparent 18%, color-mix(in srgb, #22c55e 55%, transparent) 38%, color-mix(in srgb, var(--accent) 50%, transparent) 56%, transparent 76%),
+  radial-gradient(circle at 20% 85%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 40%),
+  #060913; }
+.bg-prev.lava { background:
+  radial-gradient(circle at 30% 74%, var(--accent) 12%, transparent 34%),
+  radial-gradient(circle at 62% 36%, color-mix(in srgb, var(--accent) 70%, #e11d48) 10%, transparent 26%),
+  radial-gradient(circle at 82% 82%, #e11d6a 14%, transparent 38%),
+  linear-gradient(#0a0a12, #14090f); }
+.bg-prev.waves { background:
+  repeating-linear-gradient(100deg, transparent 0 9px, color-mix(in srgb, var(--accent) 45%, transparent) 10px 12px, transparent 13px 26px),
+  linear-gradient(180deg, #08080e, #0d0a16); }
 .bg-prev.warp { background:
   repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg 8deg, color-mix(in srgb, var(--accent) 55%, transparent) 8deg 9deg),
   radial-gradient(circle at 50% 50%, var(--accent), transparent 55%), #08080c; }

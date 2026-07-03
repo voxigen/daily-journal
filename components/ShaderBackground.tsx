@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2 };
+const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2, aurora: 3, lava: 4, waves: 5 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -19,7 +19,7 @@ float hash(vec2 p){
   return fract((p3.x + p3.y) * p3.z);
 }
 float noise(vec2 p){
-  vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);
+  vec2 i=floor(p); vec2 f=fract(p); f=f*f*f*(f*(f*6.0-15.0)+10.0);  // quintic: C2, no creases at cell edges
   float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0));
   return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
 }
@@ -125,7 +125,7 @@ void main(){
       col = mix(col, uA*0.5, st*0.5);
       outc = col;
     }
-  } else {
+  } else if (uMode < 2.5) {
     // ── Ink: flowing tendrils in water ──
     float tt = t*0.04;
     vec2 p = uv*2.0;
@@ -143,6 +143,88 @@ void main(){
       vec3 col = mix(uC, mix(uC, uA, 0.7), smoothstep(0.15, 0.7, ink));
       col = mix(col, mix(uC, vec3(0.9, 0.4, 0.55), 0.6), edge*0.6);
       outc = col;
+    }
+  } else if (uMode < 3.5) {
+    // ── Aurora: waving polar curtains over a night sky ──
+    float tt = t*0.05;
+    float st = starField(uv, 24.0, 1.8, 0.88, t) + starField(uv, 42.0, 3.0, 0.95, t)*0.6;
+    vec3 acc = vec3(0.0);
+    float cur = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float fi = float(i);
+      float x = uv.x*(1.35 + fi*0.25) + fi*4.7;
+      float w = fbm(vec2(x*1.5 + tt*(0.9 + fi*0.25), tt*0.55 + fi*3.1));
+      float y0 = 0.34 - fi*0.17 + (w - 0.5)*0.65;
+      float dy = uv.y - y0;
+      // sharp upper edge, long glow trailing below the curtain
+      float band = exp(-dy*dy*(dy > 0.0 ? 26.0 : 7.0)*(1.0 + fi*0.5));
+      float rays = 0.45 + 0.55*noise(vec2(x*11.0, tt*1.8 + fi*7.0));
+      float c = band*rays;
+      acc += mix(vec3(0.10, 0.85, 0.50), uA, clamp(fi*0.5, 0.0, 1.0)) * c * (0.9 - fi*0.22);
+      cur += c;
+    }
+    if (!light) {
+      vec3 col = mix(vec3(0.008, 0.015, 0.045), uC, 0.35);
+      col += acc*0.95 + vec3(0.85, 0.92, 1.0)*st*0.85;
+      outc = col;
+    } else {
+      vec3 soft = mix(uC, vec3(0.22, 0.62, 0.45), 0.55);
+      outc = mix(uC, soft, clamp(cur, 0.0, 1.0)*0.6);
+      outc = mix(outc, uA*0.55, clamp(st, 0.0, 1.0)*0.35);
+    }
+  } else if (uMode < 4.5) {
+    // ── Lava lamp: slow metaball blobs rising and sinking ──
+    float f = 0.0;
+    for (int i = 0; i < 6; i++) {
+      float fi = float(i);
+      float h1 = hash(vec2(fi, 3.7));
+      float h2 = hash(vec2(fi, 17.0));
+      float h3 = hash(vec2(fi, 23.0));
+      float ph = fract(t*(0.008 + 0.007*h1) + h2);
+      float yy = 1.0 - abs(1.0 - 2.0*ph);            // rise, then sink back
+      float y = mix(-0.66, 0.60, smoothstep(0.0, 1.0, yy));
+      float x = (h2 - 0.5)*1.5 + 0.10*sin(t*0.13 + fi*2.4);
+      float r = 0.12 + 0.10*h3;
+      vec2 d = uv - vec2(x, y);
+      f += r*r/(dot(d, d) + 0.002);
+    }
+    f += (1.0 - smoothstep(-0.62, -0.38, uv.y))*1.2;  // molten pool at the bottom
+    float body = smoothstep(0.92, 1.30, f);
+    float rim = smoothstep(0.92, 1.06, f) - smoothstep(1.06, 1.55, f);
+    if (!light) {
+      vec3 hot = mix(uA, vec3(0.97, 0.32, 0.45), 0.5);
+      hot *= 0.85 + 0.35*(uv.y + 0.5);               // brighter toward the top
+      hot *= 0.88 + 0.24*fbm(uv*3.0 + vec2(t*0.02, -t*0.015));  // molten mottling
+      vec3 col = mix(uC, hot, body);
+      col += vec3(1.0, 0.62, 0.55)*clamp(rim, 0.0, 1.0)*0.30;
+      outc = col;
+    } else {
+      outc = mix(uC, mix(uC, uA, 0.7), body*0.8);
+      outc = mix(outc, mix(uC, vec3(0.9, 0.42, 0.4), 0.55), clamp(rim, 0.0, 1.0)*0.45);
+    }
+  } else {
+    // ── Waves: glowing neon ribbons drifting across the screen ──
+    vec3 acc = vec3(0.0);
+    float glow = 0.0;
+    for (int i = 0; i < 5; i++) {
+      float fi = float(i);
+      float y0 = (fi - 2.0)*0.17;
+      float yy = uv.y - y0
+        - 0.13*sin(uv.x*2.1 + t*(0.20 + 0.035*fi) + fi*1.9)
+        - 0.055*sin(uv.x*4.3 - t*(0.14 + 0.02*fi) + fi*3.3)
+        - 0.028*sin(uv.x*8.1 + t*0.26 + fi*5.1);
+      float g = 0.0090/(abs(yy) + 0.011);
+      vec3 rc = mix(uA, uB, fi*0.24);
+      rc = mix(rc, vec3(0.92, 0.35, 0.60), hash(vec2(fi, 1.3))*0.4);
+      acc += rc*g;
+      glow += g;
+    }
+    if (!light) {
+      vec3 col = uC*0.75 + acc*0.62;
+      col += vec3(1.0)*pow(clamp(glow*0.45, 0.0, 1.0), 6.0)*0.22;  // white-hot cores
+      outc = col;
+    } else {
+      outc = mix(uC, mix(uC, uA, 0.75), clamp(glow*0.30, 0.0, 0.8));
     }
   }
 
@@ -164,11 +246,14 @@ export default function ShaderBackground({ mode }: { mode: string }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // preserveDrawingBuffer: the compositor presents a stable copy of the buffer
-    // instead of reading it mid-draw, which removes the "two frames stitched
-    // together" horizontal seam some GPUs show on a large animated canvas. We
-    // redraw every pixel each frame, so keeping the buffer costs nothing visually.
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+    // Anti-seam settings, hard-won on desktop:
+    // - low-power: keep WebGL on the SAME GPU as the page compositor. With
+    //   high-performance, dual-GPU Windows machines render on the discrete card
+    //   and composite on the integrated one; the cross-adapter copy is what
+    //   produced the stale "two frames stitched together" rectangles.
+    // - alpha: true opts out of the opaque/overlay fast path (partial presents).
+    // - preserveDrawingBuffer: the compositor reads a stable copy, never mid-draw.
+    const gl = canvas.getContext('webgl', { antialias: false, alpha: true, preserveDrawingBuffer: true, powerPreference: 'low-power' });
     if (!gl) return;
 
     let uRes: WebGLUniformLocation | null = null;
@@ -272,6 +357,7 @@ export default function ShaderBackground({ mode }: { mode: string }) {
       if (now - colTimer > 400) { readColors(); colTimer = now; }
       gl!.uniform1f(uTime, (now - start) / 1000);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+      gl!.flush();   // nudge ANGLE to hand the frame over promptly
     }
     raf = requestAnimationFrame(frame);
 

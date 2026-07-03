@@ -7,7 +7,7 @@ import WarpBackground from './WarpBackground';
 
 type Dot = { left: number; top: number; size: number; dur: number; delay: number; drift: number };
 
-const SHADER_MODES = new Set(['nebula', 'galaxy', 'ink']);
+const SHADER_MODES = new Set(['nebula', 'galaxy', 'ink', 'aurora', 'lava', 'waves']);
 
 export default function AnimatedBackground() {
   const [bg, setBg] = useState('none');

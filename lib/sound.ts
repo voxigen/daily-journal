@@ -94,6 +94,18 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
     drone(220, 'sine', 0.3);
     drone(330, 'triangle', 0.16, 8);
     noisePad(1500, 3, 0.32, 0.08, 700);
+  } else if (key === 'aurora') {   // icy, high shimmer — polar wind
+    drone(196, 'sine', 0.28);
+    drone(294, 'sine', 0.14, 7);
+    noisePad(2400, 2, 0.28, 0.06, 900);
+  } else if (key === 'lava') {     // warm, thick and slow
+    drone(58, 'sine', 0.55);
+    drone(87, 'triangle', 0.18, -4);
+    noisePad(230, 6, 0.55, 0.09, 110);
+  } else if (key === 'waves') {    // mid, dreamy swells
+    drone(131, 'sine', 0.4);
+    drone(196, 'sine', 0.18, -6);
+    noisePad(900, 3, 0.4, 0.11, 420);
   } else {                         // ink — watery, low and bubbly
     drone(70, 'sine', 0.5);
     drone(105, 'sine', 0.2, -5);
@@ -117,7 +129,7 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
 }
 
 export function setAmbient(bg: string) {
-  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink'].includes(bg)) { stopAmbient(); return; }
+  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink', 'aurora', 'lava', 'waves'].includes(bg)) { stopAmbient(); return; }
   const c = getCtx();
   if (!c || !master) return;
   if (ambient && ambient.key === bg) return;

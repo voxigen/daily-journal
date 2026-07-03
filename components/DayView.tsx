@@ -9,7 +9,7 @@ import RecurringModal, { RecurringInput } from './RecurringModal';
 import ProductsModal from './ProductsModal';
 import TemplateIcon from './TemplateIcon';
 import {
-  Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus, Repeat,
+  Clock, Pencil, Trash2, Plus, ImagePlus, X, ChevronLeft, StickyNote, ListTodo, UtensilsCrossed, CalendarPlus, Repeat, Scale,
 } from 'lucide-react';
 
 type Template = {
@@ -56,7 +56,7 @@ type Meal = { id: string; name: string; items: MealItem[] };
 type MealRaw = { name?: string; items?: { name?: string; grams?: number | string; kcal?: number | string; kpg?: number | string }[] };
 type Product = { id: string; name: string; kcal_per_gram: number };
 
-type DayData = { notes?: string; photo_urls?: string[]; meals?: MealRaw[] };
+type DayData = { notes?: string; photo_urls?: string[]; meals?: MealRaw[]; weight?: number | null };
 
 type Props = {
   userId: string;
@@ -68,6 +68,7 @@ type Props = {
   templates: Template[];
   initialRecurring?: Recurring[];
   initialProducts?: Product[];
+  prevWeight?: number | null;   // last logged weight before this date, for the delta chip
   backHref?: string;
 };
 
@@ -121,7 +122,7 @@ function mealKcal(m: Meal): number {
 }
 
 export default function DayView({
-  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, initialRecurring, initialProducts, backHref,
+  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, initialRecurring, initialProducts, prevWeight, backHref,
 }: Props) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [plannedToday, setPlannedToday] = useState<Planned[]>(initialPlannedToday);
@@ -131,6 +132,7 @@ export default function DayView({
   const [notes, setNotes] = useState(initialDay?.notes ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(initialDay?.photo_urls ?? []);
   const [meals, setMeals] = useState<Meal[]>(() => loadMeals(initialDay?.meals));
+  const [weight, setWeight] = useState(initialDay?.weight != null ? String(initialDay.weight) : '');
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [prodModal, setProdModal] = useState(false);
   const [focusedItem, setFocusedItem] = useState<string | null>(null);
@@ -142,15 +144,19 @@ export default function DayView({
   const notesRef = useRef(notes); notesRef.current = notes;
   const photosRef = useRef(photoUrls); photosRef.current = photoUrls;
   const mealsRef = useRef(meals); mealsRef.current = meals;
+  const weightRef = useRef(weight); weightRef.current = weight;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
   const tomorrow = addDays(date, 1);
 
+  // Accept both "82.4" and "82,4" (ru keyboards give a comma).
+  const parseWeight = (s: string) => { const v = Number(s.trim().replace(',', '.')); return v > 0 ? v : null; };
+
   async function saveDay() {
     await supabase.from('daily_days').upsert(
-      { user_id: userId, date, notes: notesRef.current, photo_urls: photosRef.current, meals: serializeMeals(mealsRef.current) },
+      { user_id: userId, date, notes: notesRef.current, photo_urls: photosRef.current, meals: serializeMeals(mealsRef.current), weight: parseWeight(weightRef.current) },
       { onConflict: 'user_id,date' }
     );
   }
@@ -534,6 +540,40 @@ export default function DayView({
           </div>
         ))}
         <button className="add-row add-row-solo" onClick={addMeal}><Plus /> Добавить приём пищи</button>
+      </div>
+
+      {/* Weight */}
+      <div className="section">
+        <div className="section-head">
+          <span className="section-label"><Scale /> Вес</span>
+          {(() => {
+            const w = parseWeight(weight);
+            if (w == null || prevWeight == null) return null;
+            const diff = Math.round((w - prevWeight) * 10) / 10;
+            return (
+              <span className="section-aside">
+                {diff === 0 ? 'без изменений' : `${diff > 0 ? '+' : ''}${diff} кг с прошлого замера`}
+              </span>
+            );
+          })()}
+        </div>
+        <div className="weight-card">
+          <div className="weight-in-wrap">
+            <input
+              className="weight-in"
+              type="text"
+              inputMode="decimal"
+              maxLength={6}
+              value={weight}
+              placeholder={prevWeight != null ? String(prevWeight) : '0.0'}
+              onChange={(e) => { setWeight(e.target.value); weightRef.current = e.target.value; scheduleSave(); }}
+            />
+            <span className="weight-unit">кг</span>
+          </div>
+          {prevWeight != null && parseWeight(weight) == null && (
+            <span className="weight-hint">прошлый замер: {prevWeight} кг</span>
+          )}
+        </div>
       </div>
 
       {/* Photos */}

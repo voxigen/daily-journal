@@ -29,6 +29,9 @@ create table if not exists daily_days (
 -- Если таблица уже создана раньше — добавь колонку питания:
 alter table daily_days add column if not exists meals jsonb default '[]';
 
+-- Вес за день (кг), для тренда в статистике:
+alter table daily_days add column if not exists weight double precision;
+
 -- Записи дел (много на один день)
 create table if not exists day_tasks (
   id               uuid default gen_random_uuid() primary key,

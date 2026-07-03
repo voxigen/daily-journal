@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import AppShell from './AppShell';
 import TemplateIcon from './TemplateIcon';
 import { formatDuration, addDays, mondayIndex, MONTHS_RU } from '@/lib/utils';
-import { Flame, Clock, ListChecks, TrendingUp, ChartColumnBig, PieChart, CalendarDays } from 'lucide-react';
+import { Flame, Clock, ListChecks, TrendingUp, ChartColumnBig, PieChart, CalendarDays, Scale } from 'lucide-react';
 
 type TaskRow = {
   date: string;
@@ -14,13 +14,15 @@ type TaskRow = {
   duration_minutes?: number | null;
 };
 
-type Props = { today: string; tasks: TaskRow[]; dayDates: string[]; kcalByDate?: Record<string, number> };
+type Props = { today: string; tasks: TaskRow[]; dayDates: string[]; kcalByDate?: Record<string, number>; weightByDate?: Record<string, number> };
 type Cat = { name: string; color: string; icon: string; m: number; c: number };
 
 const HEAT_WEEKS = 27;
 const NO_CAT = 'Без категории';
+// Weight line chart geometry (viewBox units)
+const WC_W = 560, WC_H = 150, WC_M = 10;
 
-export default function StatsView({ today, tasks, dayDates, kcalByDate = {} }: Props) {
+export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, weightByDate = {} }: Props) {
   const d = useMemo(() => {
     const byDay = new Map<string, { m: number; c: number }>();
     for (const t of tasks) {
@@ -118,14 +120,44 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {} }: P
     const kcalToday = kcalByDate[today] ?? 0;
     const kcalHas = kcalVals.length > 0;
 
+    // weight trend: entries from the last 90 days (fall back to the newest
+    // entries when tracking is sparse), time-scaled x, padded min/max y.
+    const wEntries = Object.entries(weightByDate)
+      .map(([date, w]) => ({ date, w }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+    let wWin = wEntries.filter((e) => e.date >= addDays(today, -89));
+    if (wWin.length < 2) wWin = wEntries.slice(-30);
+    const wHas = wEntries.length > 0;
+    const wLast = wHas ? wEntries[wEntries.length - 1].w : 0;
+    let wMin = 0, wMax = 0;
+    let wDelta: number | null = null;
+    let wPts: { x: number; y: number; date: string; w: number }[] = [];
+    if (wWin.length > 0) {
+      wMin = Math.min(...wWin.map((e) => e.w));
+      wMax = Math.max(...wWin.map((e) => e.w));
+      if (wWin.length >= 2) wDelta = Math.round((wWin[wWin.length - 1].w - wWin[0].w) * 10) / 10;
+      const pad = Math.max(0.4, (wMax - wMin) * 0.15);
+      const lo = wMin - pad, hi = wMax + pad;
+      const t0 = new Date(wWin[0].date + 'T12:00:00').getTime();
+      const span = Math.max(1, new Date(wWin[wWin.length - 1].date + 'T12:00:00').getTime() - t0);
+      wPts = wWin.map((e) => ({
+        x: Math.round((WC_M + ((new Date(e.date + 'T12:00:00').getTime() - t0) / span) * (WC_W - 2 * WC_M)) * 10) / 10,
+        y: Math.round((WC_M + (1 - (e.w - lo) / (hi - lo)) * (WC_H - 2 * WC_M)) * 10) / 10,
+        date: e.date, w: e.w,
+      }));
+    }
+    const wFirstDate = wWin[0]?.date ?? '';
+    const wLastDate = wWin[wWin.length - 1]?.date ?? '';
+
     return {
       streak, totalM, totalC, weekM, weekC, activeDays, avgM,
       cats, catTotalM, catTotalC, useTime, donut, donutBase,
       bars, barMaxM, barMaxC, barsUseTime, cells, monthLabels,
       kcalBars, kcalMax, kcalAvg, kcalToday, kcalHas,
+      wHas, wLast, wMin, wMax, wDelta, wPts, wFirstDate, wLastDate,
       hasData: tasks.length > 0 || dayDates.length > 0,
     };
-  }, [tasks, dayDates, today, kcalByDate]);
+  }, [tasks, dayDates, today, kcalByDate, weightByDate]);
 
   if (!d.hasData) {
     return (
@@ -215,6 +247,57 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {} }: P
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Weight trend */}
+      {d.wHas && (
+        <div className="section">
+          <div className="section-head">
+            <span className="section-label"><Scale /> Вес</span>
+            {d.wDelta != null && (
+              <span className="section-aside">{d.wDelta > 0 ? '+' : ''}{d.wDelta} кг за период</span>
+            )}
+          </div>
+          <div className="chart-card">
+            <div className="field-stats">
+              <div className="field-stat"><span className="v">{d.wLast}</span><span className="l">сейчас, кг</span></div>
+              {d.wDelta != null && (
+                <div className="field-stat"><span className="v">{d.wDelta > 0 ? '+' : ''}{d.wDelta}</span><span className="l">за период, кг</span></div>
+              )}
+              <div className="field-stat"><span className="v">{d.wMin}–{d.wMax}</span><span className="l">мин–макс, кг</span></div>
+            </div>
+            {d.wPts.length >= 2 && (
+              <>
+                <svg className="wchart" viewBox={`0 0 ${WC_W} ${WC_H}`}>
+                  <defs>
+                    <linearGradient id="wgrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.26" />
+                      <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    fill="url(#wgrad)"
+                    points={`${d.wPts[0].x},${WC_H - 4} ${d.wPts.map((p) => `${p.x},${p.y}`).join(' ')} ${d.wPts[d.wPts.length - 1].x},${WC_H - 4}`}
+                  />
+                  <polyline
+                    fill="none" stroke="var(--accent)" strokeWidth="2.5"
+                    strokeLinejoin="round" strokeLinecap="round"
+                    points={d.wPts.map((p) => `${p.x},${p.y}`).join(' ')}
+                  />
+                  {d.wPts.map((p) => (
+                    <circle key={p.date} cx={p.x} cy={p.y} r="3.5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.5">
+                      <title>{`${new Date(p.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${p.w} кг`}</title>
+                    </circle>
+                  ))}
+                </svg>
+                <div className="wchart-x">
+                  <span>{new Date(d.wFirstDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                  <span>{new Date(d.wLastDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

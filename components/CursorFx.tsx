@@ -123,17 +123,25 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
     root.addEventListener('pointerleave', onLeave);
 
     let raf = 0;
+    let lastT = 0;
     function frame(now: number) {
       raf = requestAnimationFrame(frame);
+      // Time-based smoothing: fixed per-frame factors made the ring crawl when a
+      // heavy shader background dropped the frame rate. Clamp dt so a background
+      // tab doesn't teleport particles on return.
+      const dt = lastT ? Math.min((now - lastT) / 1000, 0.05) : 1 / 60;
+      lastT = now;
+      const step = dt * 60;   // 1 at 60fps — scales the old per-frame constants
       if (now - colTimer > 500) {
         colTimer = now;
         accent = hexToRgb(getComputedStyle(root).getPropertyValue('--accent') || '#5a63d8');
       }
       const el = elRef.current, dot = dotRef.current;
       if (el) {
-        rx += (mx - rx) * (cursor === 'ring' ? 0.22 : 1);
-        ry += (my - ry) * (cursor === 'ring' ? 0.22 : 1);
-        scale += (scaleT - scale) * 0.3;
+        const k = cursor === 'ring' ? 1 - Math.exp(-dt * 15) : 1;
+        rx += (mx - rx) * k;
+        ry += (my - ry) * k;
+        scale += (scaleT - scale) * (1 - Math.exp(-dt * 21));
         const show = visible && !overText;
         el.style.transform = `translate(${rx}px, ${ry}px) translate(-50%,-50%) scale(${scale.toFixed(3)})`;
         el.style.opacity = show ? '1' : '0';
@@ -146,7 +154,8 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
       const [cr, cg, cb] = accent;
       ctx.clearRect(0, 0, cv.width, cv.height);
       if (fx === 'glow') {
-        gx += (mx - gx) * 0.14; gy += (my - gy) * 0.14;
+        const gk = 1 - Math.exp(-dt * 9);
+        gx += (mx - gx) * gk; gy += (my - gy) * gk;
         if (visible) {
           const rad = 170 * dpr;
           const g = ctx.createRadialGradient(gx * dpr, gy * dpr, 0, gx * dpr, gy * dpr, rad);
@@ -159,10 +168,10 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
         for (let i = parts.length - 1; i >= 0; i--) {
           const p = parts[i];
           if (fx === 'sparks') {
-            p.x += p.vx; p.y += p.vy; p.vy += 0.05;
-            p.life -= 0.022;
+            p.x += p.vx * step; p.y += p.vy * step; p.vy += 0.05 * step;
+            p.life -= 0.022 * step;
           } else {
-            p.life -= 0.026;
+            p.life -= 0.026 * step;
           }
           if (p.life <= 0) { parts.splice(i, 1); continue; }
           const a = fx === 'trail' ? p.life * 0.6 : p.life * 0.8;

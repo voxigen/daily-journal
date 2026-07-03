@@ -104,6 +104,18 @@ create index if not exists vocab_due_idx on vocab_cards (user_id, due);
 alter table vocab_cards enable row level security;
 create policy "own vocab" on vocab_cards using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Справочник продуктов (ккал на 1 грамм) для учёта питания с автоподсказкой
+create table if not exists products (
+  id            uuid default gen_random_uuid() primary key,
+  user_id       uuid references auth.users not null,
+  name          text not null,
+  kcal_per_gram double precision not null default 0,
+  created_at    timestamptz default now()
+);
+create index if not exists products_user_idx on products (user_id);
+alter table products enable row level security;
+create policy "own products" on products using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- Storage bucket для фото (выполни отдельно или создай вручную)
 -- insert into storage.buckets (id, name, public) values ('day-photos', 'day-photos', false);
 -- create policy "own photos upload" on storage.objects for insert with check (bucket_id = 'day-photos' and auth.uid()::text = (storage.foldername(name))[1]);

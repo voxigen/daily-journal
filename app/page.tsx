@@ -19,12 +19,14 @@ export default async function Home() {
     { data: planned },
     { data: templates },
     { data: recurring },
+    { data: products },
   ] = await Promise.all([
     supabase.from('daily_days').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
     supabase.from('day_tasks').select('*').eq('user_id', user.id).eq('date', today).order('created_at'),
     supabase.from('planned_tasks').select('*').eq('user_id', user.id).in('date', [today, tomorrow]).order('created_at'),
     supabase.from('templates').select('*').eq('user_id', user.id).order('created_at'),
     supabase.from('recurring_plans').select('*').eq('user_id', user.id).eq('active', true).order('created_at'),
+    supabase.from('products').select('id, name, kcal_per_gram').eq('user_id', user.id).order('name'),
   ]);
 
   const all = planned ?? [];
@@ -40,6 +42,7 @@ export default async function Home() {
         initialPlannedTomorrow={all.filter((p) => p.date === tomorrow)}
         templates={templates ?? []}
         initialRecurring={recurring ?? []}
+        initialProducts={products ?? []}
       />
     </AppShell>
   );

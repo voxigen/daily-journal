@@ -352,11 +352,39 @@ textarea { min-height: 84px; line-height: 1.6; }
 .meal-del:hover, .mi-del:hover { background: rgba(217,45,32,0.1); color: var(--red); }
 .meal-items { display: flex; flex-direction: column; gap: 7px; }
 .meal-item { display: flex; align-items: center; gap: 7px; }
-.mi-name { flex: 1; min-width: 0; }
-.mi-kcal-wrap { position: relative; width: 92px; flex-shrink: 0; }
-.mi-kcal { width: 100%; padding-right: 38px; text-align: right; }
-.mi-kcal::-webkit-outer-spin-button, .mi-kcal::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.mi-unit { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-3); pointer-events: none; }
+.mi-ac { position: relative; flex: 1; min-width: 0; }
+.mi-name { width: 100%; }
+.mi-num-wrap { position: relative; width: 76px; flex-shrink: 0; }
+.mi-num { width: 100%; padding-right: 26px; text-align: right; }
+.mi-num::-webkit-outer-spin-button, .mi-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mi-unit { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 10.5px; color: var(--text-3); pointer-events: none; }
+
+/* Food autocomplete dropdown */
+.mi-dd { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 15; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--radius-sm); box-shadow: var(--shadow); overflow: hidden; max-height: 260px; overflow-y: auto; }
+.mi-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 9px 12px; background: none; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 13.5px; cursor: pointer; text-align: left; transition: background 0.1s; }
+.mi-opt:hover { background: var(--accent-soft); }
+.mi-opt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-opt-kpg { color: var(--text-3); font-size: 12px; flex-shrink: 0; }
+.mi-quick { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--surface-2); }
+.mi-quick-lbl { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-quick-in { width: 76px; flex-shrink: 0; padding: 7px 9px; font-size: 13px; }
+.mi-quick-add { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: var(--radius-xs); background: var(--accent); color: var(--accent-contrast); border: none; cursor: pointer; }
+.mi-quick-add svg { width: 16px; height: 16px; }
+.meal-head-right { display: inline-flex; align-items: center; gap: 12px; }
+.link-btn { background: none; border: none; color: var(--accent); font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 0; }
+.link-btn:hover { text-decoration: underline; }
+
+/* Products modal */
+.prod-add { display: flex; gap: 8px; align-items: stretch; }
+.prod-add > input { flex: 1; min-width: 0; }
+.prod-kpg { position: relative; width: 110px; flex-shrink: 0; }
+.prod-kpg input { width: 100%; padding-right: 46px; text-align: right; }
+.prod-kpg input::-webkit-outer-spin-button, .prod-kpg input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.prod-unit { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-3); pointer-events: none; }
+.prod-list { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+.prod-row { display: flex; align-items: center; gap: 8px; }
+.prod-name { flex: 1; min-width: 0; }
+.prod-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 20px 0; }
 .meal-add-item { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; padding: 6px 0; background: none; border: none; color: var(--text-2); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: color 0.13s; }
 .meal-add-item svg { width: 15px; height: 15px; }
 .meal-add-item:hover { color: var(--accent); }

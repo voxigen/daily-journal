@@ -19,11 +19,13 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
     { data: tasks },
     { data: planned },
     { data: templates },
+    { data: products },
   ] = await Promise.all([
     supabase.from('daily_days').select('*').eq('user_id', user.id).eq('date', date).maybeSingle(),
     supabase.from('day_tasks').select('*').eq('user_id', user.id).eq('date', date).order('created_at'),
     supabase.from('planned_tasks').select('*').eq('user_id', user.id).in('date', [date, tomorrow]).order('created_at'),
     supabase.from('templates').select('*').eq('user_id', user.id).order('created_at'),
+    supabase.from('products').select('id, name, kcal_per_gram').eq('user_id', user.id).order('name'),
   ]);
 
   const all = planned ?? [];
@@ -38,6 +40,7 @@ export default async function DayPage({ params }: { params: Promise<{ date: stri
         initialPlannedToday={all.filter((p) => p.date === date)}
         initialPlannedTomorrow={all.filter((p) => p.date === tomorrow)}
         templates={templates ?? []}
+        initialProducts={products ?? []}
         backHref="/history"
       />
     </AppShell>

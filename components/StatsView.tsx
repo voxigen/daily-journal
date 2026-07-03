@@ -14,13 +14,13 @@ type TaskRow = {
   duration_minutes?: number | null;
 };
 
-type Props = { today: string; tasks: TaskRow[]; dayDates: string[] };
+type Props = { today: string; tasks: TaskRow[]; dayDates: string[]; kcalByDate?: Record<string, number> };
 type Cat = { name: string; color: string; icon: string; m: number; c: number };
 
 const HEAT_WEEKS = 27;
 const NO_CAT = 'Без категории';
 
-export default function StatsView({ today, tasks, dayDates }: Props) {
+export default function StatsView({ today, tasks, dayDates, kcalByDate = {} }: Props) {
   const d = useMemo(() => {
     const byDay = new Map<string, { m: number; c: number }>();
     for (const t of tasks) {
@@ -109,13 +109,23 @@ export default function StatsView({ today, tasks, dayDates }: Props) {
       }
     }
 
+    // calories: last 14 days + average over all logged days
+    const kcalBars: { date: string; kcal: number }[] = [];
+    for (let i = 13; i >= 0; i--) { const date = addDays(today, -i); kcalBars.push({ date, kcal: kcalByDate[date] ?? 0 }); }
+    const kcalMax = Math.max(1, ...kcalBars.map((b) => b.kcal));
+    const kcalVals = Object.values(kcalByDate);
+    const kcalAvg = kcalVals.length ? Math.round(kcalVals.reduce((s, v) => s + v, 0) / kcalVals.length) : 0;
+    const kcalToday = kcalByDate[today] ?? 0;
+    const kcalHas = kcalVals.length > 0;
+
     return {
       streak, totalM, totalC, weekM, weekC, activeDays, avgM,
       cats, catTotalM, catTotalC, useTime, donut, donutBase,
       bars, barMaxM, barMaxC, barsUseTime, cells, monthLabels,
+      kcalBars, kcalMax, kcalAvg, kcalToday, kcalHas,
       hasData: tasks.length > 0 || dayDates.length > 0,
     };
-  }, [tasks, dayDates, today]);
+  }, [tasks, dayDates, today, kcalByDate]);
 
   if (!d.hasData) {
     return (
@@ -180,6 +190,34 @@ export default function StatsView({ today, tasks, dayDates }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Calories: last 14 days */}
+      {d.kcalHas && (
+        <div className="section">
+          <div className="section-head">
+            <span className="section-label"><Flame /> Калории за 14 дней</span>
+            <span className="section-aside">≈ {d.kcalAvg} ккал/день</span>
+          </div>
+          <div className="chart-card">
+            <div className="field-stats">
+              <div className="field-stat"><span className="v">{d.kcalToday}</span><span className="l">сегодня</span></div>
+              <div className="field-stat"><span className="v">{d.kcalAvg}</span><span className="l">среднее/день</span></div>
+            </div>
+            <div className="bars">
+              {d.kcalBars.map((b) => {
+                const h = b.kcal ? Math.max(4, Math.round((b.kcal / d.kcalMax) * 100)) : 0;
+                const tip = `${new Date(b.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${b.kcal} ккал`;
+                return (
+                  <div className="bar-col" key={b.date} title={tip}>
+                    <div className="bar-track"><div className="bar" style={{ height: `${h}%`, background: 'var(--amber)' }} /></div>
+                    <div className="bar-lbl">{b.date.slice(8)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Donut by category */}
       <div className="section">

@@ -70,7 +70,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
       <nav className="tabbar">
         {NAV.map(({ href, Icon, label, match }) => (
           <button key={href} className={`tab-link${match(pathname) ? ' active' : ''}`} onClick={() => router.push(href)}>
-            <Icon />
+            <span className="tab-ico"><Icon /></span>
             <span className="tab-label">{label}</span>
           </button>
         ))}

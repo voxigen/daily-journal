@@ -167,51 +167,75 @@ export default function ShaderBackground({ mode }: { mode: string }) {
     const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
     if (!gl) return;
 
+    let uRes: WebGLUniformLocation | null = null;
+    let uTime: WebGLUniformLocation | null = null;
+    let uMode: WebGLUniformLocation | null = null;
+    let uMix: WebGLUniformLocation | null = null;
+    let uA: WebGLUniformLocation | null = null;
+    let uB: WebGLUniformLocation | null = null;
+    let uC: WebGLUniformLocation | null = null;
+    // Force a resize on the next frame (also used to re-sync after context restore).
+    let bufW = 0, bufH = 0;
+    let ready = false;
+
     function compile(type: number, src: string) {
       const sh = gl!.createShader(type)!;
       gl!.shaderSource(sh, src);
       gl!.compileShader(sh);
       return sh;
     }
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
-    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
-    gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
-    gl.useProgram(prog);
 
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const aPos = gl.getAttribLocation(prog, 'aPos');
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    // (Re)build all GL objects. Called once up front and again on context restore,
+    // since a lost context invalidates every program/buffer/uniform.
+    function setup() {
+      const prog = gl!.createProgram()!;
+      gl!.attachShader(prog, compile(gl!.VERTEX_SHADER, VERT));
+      gl!.attachShader(prog, compile(gl!.FRAGMENT_SHADER, FRAG));
+      gl!.linkProgram(prog);
+      if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) return;
+      gl!.useProgram(prog);
 
-    const uRes = gl.getUniformLocation(prog, 'uRes');
-    const uTime = gl.getUniformLocation(prog, 'uTime');
-    const uMode = gl.getUniformLocation(prog, 'uMode');
-    const uMix = gl.getUniformLocation(prog, 'uMix');
-    const uA = gl.getUniformLocation(prog, 'uA');
-    const uB = gl.getUniformLocation(prog, 'uB');
-    const uC = gl.getUniformLocation(prog, 'uC');
-    gl.uniform1f(uMode, MODES[mode] ?? 0);
+      const buf = gl!.createBuffer();
+      gl!.bindBuffer(gl!.ARRAY_BUFFER, buf);
+      gl!.bufferData(gl!.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl!.STATIC_DRAW);
+      const aPos = gl!.getAttribLocation(prog, 'aPos');
+      gl!.enableVertexAttribArray(aPos);
+      gl!.vertexAttribPointer(aPos, 2, gl!.FLOAT, false, 0, 0);
+
+      uRes = gl!.getUniformLocation(prog, 'uRes');
+      uTime = gl!.getUniformLocation(prog, 'uTime');
+      uMode = gl!.getUniformLocation(prog, 'uMode');
+      uMix = gl!.getUniformLocation(prog, 'uMix');
+      uA = gl!.getUniformLocation(prog, 'uA');
+      uB = gl!.getUniformLocation(prog, 'uB');
+      uC = gl!.getUniformLocation(prog, 'uC');
+      gl!.uniform1f(uMode, MODES[mode] ?? 0);
+      bufW = 0; bufH = 0;   // invalidate cached size so the loop resizes immediately
+      readColors();
+      ready = true;
+    }
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     // Full-res render — upscaling from a smaller buffer caused faint shimmer/aliasing
     // artifacts on desktop. Cap total pixels so huge monitors still stay smooth.
-    const scale = 1.0;
     const MAX_PIXELS = 4500000;
-    function resize() {
-      let w = window.innerWidth * dpr * scale;
-      let h = window.innerHeight * dpr * scale;
+    // Resize the drawing buffer INSIDE the render loop (not on the async resize event):
+    // `canvas.width = …` clears the buffer to black, and if that happened between the
+    // event and the next frame the compositor flashed an empty strip — the flicker/
+    // "jitter" seen while the mobile URL bar shows/hides. Doing it right before the draw
+    // keeps the resize and the repaint atomic.
+    function syncSize() {
+      let w = window.innerWidth * dpr;
+      let h = window.innerHeight * dpr;
       const over = (w * h) / MAX_PIXELS;
       if (over > 1) { const f = Math.sqrt(over); w /= f; h /= f; }
       w = Math.max(1, Math.floor(w)); h = Math.max(1, Math.floor(h));
-      if (canvas!.width !== w || canvas!.height !== h) {
+      if (w !== bufW || h !== bufH) {
+        bufW = w; bufH = h;
         canvas!.width = w; canvas!.height = h;
         gl!.viewport(0, 0, w, h);
+        gl!.uniform2f(uRes, w, h);
       }
-      gl!.uniform2f(uRes, w, h);
     }
 
     let colTimer = 0;
@@ -226,23 +250,31 @@ export default function ShaderBackground({ mode }: { mode: string }) {
       gl!.uniform1f(uMix, document.documentElement.dataset.theme === 'light' ? 0.55 : 0.85);
     }
 
-    resize();
-    readColors();
-    window.addEventListener('resize', resize);
+    // Without preventDefault the context is gone for good and the canvas freezes on its
+    // last (often partial) frame — the stuck rectangular block. Rebuild on restore.
+    function onLost(e: Event) { e.preventDefault(); ready = false; }
+    function onRestored() { setup(); }
+    canvas.addEventListener('webglcontextlost', onLost, false);
+    canvas.addEventListener('webglcontextrestored', onRestored, false);
+
+    setup();
 
     let raf = 0;
     const start = performance.now();
     function frame(now: number) {
+      raf = requestAnimationFrame(frame);
+      if (!ready || gl!.isContextLost()) return;
+      syncSize();
       if (now - colTimer > 400) { readColors(); colTimer = now; }
       gl!.uniform1f(uTime, (now - start) / 1000);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
     };

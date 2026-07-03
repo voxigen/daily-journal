@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 // Custom cursor + pointer effects, driven by data-cursor / data-cursorfx on <html>.
 // Desktop-only: activates for fine pointers, so phones are unaffected.
 
-const CURSOR_STYLES = new Set(['dot', 'ring', 'glow']);
+const CURSOR_STYLES = new Set(['ring', 'glow']);
 const FX = new Set(['trail', 'sparks', 'glow']);
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; size: number };
@@ -22,7 +22,9 @@ export default function CursorFx() {
   const [fine, setFine] = useState(false);
 
   useEffect(() => {
-    const mq = matchMedia('(pointer: fine)');
+    // any-pointer: a mouse attached anywhere counts (desktops with touchscreens
+    // can report a coarse primary pointer, which killed the feature there).
+    const mq = matchMedia('(any-pointer: fine)');
     setFine(mq.matches);
     const onMq = (e: MediaQueryListEvent) => setFine(e.matches);
     mq.addEventListener('change', onMq);
@@ -52,10 +54,12 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
   useEffect(() => {
     const root = document.documentElement;
     const hasCursor = CURSOR_STYLES.has(cursor);
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const cv = cvRef.current;
     const ctx = cv ? cv.getContext('2d') : null;
-    const fxOn = !reduced && FX.has(fx) && !!ctx;
+    // No prefers-reduced-motion gate: picking an effect in settings is an
+    // explicit opt-in, and the OS-level flag silently killed it on Windows
+    // machines with "show animations" turned off.
+    const fxOn = FX.has(fx) && !!ctx;
     if (hasCursor) root.classList.add('cursor-none');
 
     let mx = -100, my = -100;      // raw pointer
@@ -97,7 +101,7 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
       const dist = Math.hypot(mx - lastX, my - lastY);
       const now = performance.now();
       if (fx === 'trail' && dist > 4) {
-        parts.push({ x: mx, y: my, vx: 0, vy: 0, life: 1, size: 3.4 });
+        parts.push({ x: mx, y: my, vx: 0, vy: 0, life: 1, size: 4.4 });
         lastX = mx; lastY = my;
         if (parts.length > 90) parts.shift();
       } else if (fx === 'sparks' && dist > 14 && now - lastSpawn > 24) {
@@ -158,10 +162,10 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
             p.x += p.vx; p.y += p.vy; p.vy += 0.05;
             p.life -= 0.022;
           } else {
-            p.life -= 0.033;
+            p.life -= 0.026;
           }
           if (p.life <= 0) { parts.splice(i, 1); continue; }
-          const a = fx === 'trail' ? p.life * 0.45 : p.life * 0.8;
+          const a = fx === 'trail' ? p.life * 0.6 : p.life * 0.8;
           ctx.beginPath();
           ctx.arc(p.x * dpr, p.y * dpr, p.size * p.life * dpr, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${cr},${cg},${cb},${a.toFixed(3)})`;

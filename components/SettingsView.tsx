@@ -61,7 +61,6 @@ const TILE_FX: { key: string; label: string }[] = [
 
 const CURSORS: { key: string; label: string }[] = [
   { key: 'system', label: 'Системный' },
-  { key: 'dot', label: 'Точка' },
   { key: 'ring', label: 'Кольцо' },
   { key: 'glow', label: 'Неон' },
 ];
@@ -139,7 +138,8 @@ export default function SettingsView() {
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
     setTilefxState(document.documentElement.dataset.tilefx || 'none');
     setSoundState(document.documentElement.dataset.sound || 'sfx');
-    setCursorState(document.documentElement.dataset.cursor || 'system');
+    const savedCursor = document.documentElement.dataset.cursor || 'system';
+    setCursorState(CURSORS.some((c) => c.key === savedCursor) ? savedCursor : 'system');
     setCursorfxState(document.documentElement.dataset.cursorfx || 'none');
     setLogoState(document.documentElement.dataset.logo || 'notebook');
     setCustomHex(localStorage.getItem('accentCustom') || '#5a63d8');

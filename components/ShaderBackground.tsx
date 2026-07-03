@@ -99,20 +99,22 @@ void main(){
       outc = col;
     }
   } else if (uMode < 1.5) {
-    // ── Galaxy: rotating spiral with a bright core ──
+    // ── Galaxy: tilted rotating spiral with a bright core ──
     float tt = t*0.05;
-    vec2 p = uv * vec2(1.0, 1.35);
+    vec2 pr = vec2(uv.x*0.9135 - uv.y*0.4067, uv.x*0.4067 + uv.y*0.9135);  // ~23° tilt
+    vec2 p = pr * vec2(1.0, 1.42);
     float r = length(p);
     float a = atan(p.y, p.x) + tt;
     float arm = sin(a*2.0 + log(r + 0.05)*7.0);
     float arms = smoothstep(0.15, 0.95, arm) * smoothstep(1.1, 0.05, r);
     arms *= 0.4 + 0.7*fbm(p*3.5 + vec2(tt*2.0, r*5.0));   // cartesian noise — no atan seam
-    float core = exp(-r*r*16.0);
-    float halo = exp(-r*r*4.5) * 0.22;                    // tighter, dimmer glow
+    float core = exp(-r*r*22.0);
+    float halo = exp(-r*r*5.5) * 0.22;                    // tighter, dimmer glow
     float st = starField(uv, 22.0, 2.2, 0.9, t) + starField(uv, 40.0, 3.4, 0.96, t)*0.6;
     float field = clamp(arms, 0.0, 1.0);
     if (!light) {
       vec3 armCol = mix(uA, vec3(0.92, 0.3, 0.55), 0.35);
+      armCol = mix(armCol, uB, smoothstep(0.22, 0.85, r)*0.55);  // outskirts cool toward blue
       vec3 col = mix(uC, armCol, field);                  // saturated arms (less washed out)
       col += mix(vec3(1.0), uA, 0.55) * core;             // tight accent-white core
       col += uA * halo;                                   // accent halo (not warm white)
@@ -150,6 +152,9 @@ void main(){
     float st = starField(uv, 24.0, 1.8, 0.88, t) + starField(uv, 42.0, 3.0, 0.95, t)*0.6;
     vec3 acc = vec3(0.0);
     float cur = 0.0;
+    // curtains follow the accent, drifting toward blue higher up (no fixed green)
+    vec3 curLow = uA*1.3;
+    vec3 curHigh = mix(uA, uB, 0.7)*1.1;
     for (int i = 0; i < 3; i++) {
       float fi = float(i);
       float x = uv.x*(1.35 + fi*0.25) + fi*4.7;
@@ -160,7 +165,7 @@ void main(){
       float band = exp(-dy*dy*(dy > 0.0 ? 26.0 : 7.0)*(1.0 + fi*0.5));
       float rays = 0.45 + 0.55*noise(vec2(x*11.0, tt*1.8 + fi*7.0));
       float c = band*rays;
-      acc += mix(vec3(0.10, 0.85, 0.50), uA, clamp(fi*0.5, 0.0, 1.0)) * c * (0.9 - fi*0.22);
+      acc += mix(curLow, curHigh, clamp(fi*0.5, 0.0, 1.0)) * c * (0.9 - fi*0.22);
       cur += c;
     }
     if (!light) {
@@ -168,7 +173,7 @@ void main(){
       col += acc*0.95 + vec3(0.85, 0.92, 1.0)*st*0.85;
       outc = col;
     } else {
-      vec3 soft = mix(uC, vec3(0.22, 0.62, 0.45), 0.55);
+      vec3 soft = mix(uC, uA, 0.5);
       outc = mix(uC, soft, clamp(cur, 0.0, 1.0)*0.6);
       outc = mix(outc, uA*0.55, clamp(st, 0.0, 1.0)*0.35);
     }

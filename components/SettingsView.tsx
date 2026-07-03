@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
-import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2, Shapes } from 'lucide-react';
+import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2, Shapes, MousePointer2 } from 'lucide-react';
 import { LOGO_ICONS, LOGO_KEYS } from './LogoIcon';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
@@ -48,8 +48,6 @@ const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'aurora', label: 'Сияние' },
   { key: 'lava', label: 'Лава-лампа' },
   { key: 'waves', label: 'Волны' },
-  { key: 'warp', label: 'Гиперпрыжок' },
-  { key: 'bokeh', label: 'Пузыри' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
   { key: 'grid', label: 'Сетка' },
@@ -59,6 +57,20 @@ const BACKGROUNDS: { key: string; label: string }[] = [
 const TILE_FX: { key: string; label: string }[] = [
   { key: 'none', label: 'Нет' },
   { key: 'neon', label: 'Неон' },
+];
+
+const CURSORS: { key: string; label: string }[] = [
+  { key: 'system', label: 'Системный' },
+  { key: 'dot', label: 'Точка' },
+  { key: 'ring', label: 'Кольцо' },
+  { key: 'glow', label: 'Неон' },
+];
+
+const CURSOR_FX: { key: string; label: string }[] = [
+  { key: 'none', label: 'Нет' },
+  { key: 'trail', label: 'Шлейф' },
+  { key: 'sparks', label: 'Искры' },
+  { key: 'glow', label: 'Свечение' },
 ];
 
 const SOUNDS: { key: string; label: string }[] = [
@@ -108,6 +120,8 @@ export default function SettingsView() {
   const [surface, setSurfaceState] = useState('solid');
   const [tilefx, setTilefxState] = useState('none');
   const [sound, setSoundState] = useState('sfx');
+  const [cursor, setCursorState] = useState('system');
+  const [cursorfx, setCursorfxState] = useState('none');
   const [logo, setLogoState] = useState('notebook');
   const [customHex, setCustomHex] = useState('#5a63d8');
   const [tz, setTzState] = useState('auto');
@@ -125,6 +139,8 @@ export default function SettingsView() {
     setSurfaceState(document.documentElement.dataset.surface || 'solid');
     setTilefxState(document.documentElement.dataset.tilefx || 'none');
     setSoundState(document.documentElement.dataset.sound || 'sfx');
+    setCursorState(document.documentElement.dataset.cursor || 'system');
+    setCursorfxState(document.documentElement.dataset.cursorfx || 'none');
     setLogoState(document.documentElement.dataset.logo || 'notebook');
     setCustomHex(localStorage.getItem('accentCustom') || '#5a63d8');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
@@ -213,6 +229,20 @@ export default function SettingsView() {
     setTilefxState(key);
     document.documentElement.dataset.tilefx = key;
     localStorage.setItem('tilefx', key);
+  }
+
+  function chooseCursor(key: string) {
+    setCursorState(key);
+    document.documentElement.dataset.cursor = key;
+    localStorage.setItem('cursor', key);
+    window.dispatchEvent(new Event('cursorchange'));
+  }
+
+  function chooseCursorfx(key: string) {
+    setCursorfxState(key);
+    document.documentElement.dataset.cursorfx = key;
+    localStorage.setItem('cursorfx', key);
+    window.dispatchEvent(new Event('cursorchange'));
   }
 
   function chooseSound(key: string) {
@@ -350,6 +380,25 @@ export default function SettingsView() {
       </div>
 
       <div className="section">
+        <div className="section-head"><span className="section-label"><MousePointer2 /> Курсор</span></div>
+        <div className="setting-card">
+          <div className="cursor-group-label">Вид</div>
+          <div className="pills">
+            {CURSORS.map((c) => (
+              <button key={c.key} className={`pill${cursor === c.key ? ' sel' : ''}`} onClick={() => chooseCursor(c.key)}>{c.label}</button>
+            ))}
+          </div>
+          <div className="cursor-group-label" style={{ marginTop: 12 }}>Эффект</div>
+          <div className="pills">
+            {CURSOR_FX.map((f) => (
+              <button key={f.key} className={`pill${cursorfx === f.key ? ' sel' : ''}`} onClick={() => chooseCursorfx(f.key)}>{f.label}</button>
+            ))}
+          </div>
+          <div className="setting-hint">Курсор в цвете акцента + эффект за ним (шлейф, искры или свечение). Работает с мышью — на телефоне не влияет.</div>
+        </div>
+      </div>
+
+      <div className="section">
         <div className="section-head"><span className="section-label"><Volume2 /> Звук</span></div>
         <div className="setting-card">
           <div className="segment">
@@ -357,7 +406,7 @@ export default function SettingsView() {
               <button key={s.key} className={sound === s.key ? 'sel' : ''} onClick={() => chooseSound(s.key)}>{s.label}</button>
             ))}
           </div>
-          <div className="setting-hint">«Эффекты» — звуки на действия. «Эффекты + фон» добавляет тихий эмбиент под анимированный фон (туманность, галактика, чернила). Запускается после первого касания.</div>
+          <div className="setting-hint">«Эффекты» — звуки на действия. «Эффекты + фон» добавляет тихий эмбиент под шейдерные фоны (туманность, галактика, чернила, сияние, лава-лампа, волны). Запускается после первого касания.</div>
         </div>
       </div>
 

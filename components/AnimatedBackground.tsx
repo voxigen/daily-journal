@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ShaderBackground from './ShaderBackground';
 import ConstellationBackground from './ConstellationBackground';
-import WarpBackground from './WarpBackground';
 
 type Dot = { left: number; top: number; size: number; dur: number; delay: number; drift: number };
 
@@ -43,14 +42,8 @@ export default function AnimatedBackground() {
   if (bg === 'constellation') {
     return <ConstellationBackground key="constellation" />;
   }
-  if (bg === 'warp') {
-    return <WarpBackground key="warp" />;
-  }
   if (SHADER_MODES.has(bg)) {
     return <ShaderBackground key={bg} mode={bg} />;
-  }
-  if (bg === 'bokeh') {
-    return <div className="bg-anim bg-bokeh" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>;
   }
   if (bg === 'grid') {
     return <div className="bg-anim bg-grid" aria-hidden="true"><span /></div>;

@@ -164,7 +164,11 @@ export default function ShaderBackground({ mode }: { mode: string }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+    // preserveDrawingBuffer: the compositor presents a stable copy of the buffer
+    // instead of reading it mid-draw, which removes the "two frames stitched
+    // together" horizontal seam some GPUs show on a large animated canvas. We
+    // redraw every pixel each frame, so keeping the buffer costs nothing visually.
+    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     if (!gl) return;
 
     let uRes: WebGLUniformLocation | null = null;

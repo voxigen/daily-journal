@@ -78,7 +78,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <span className="auth-brand"><LogoIcon /></span>
-        <h1 className="auth-title">Daily Journal</h1>
+        <h1 className="auth-title">Almanax</h1>
         <p className="auth-sub">{SUBTITLES[mode]}</p>
 
         {error && <div className="error-msg">{error}</div>}

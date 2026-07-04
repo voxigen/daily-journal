@@ -32,7 +32,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="brand-mark"><LogoIcon /></span>
-          <span className="brand-name">Journal</span>
+          <span className="brand-name">Almanax</span>
         </div>
         <nav className="sidebar-nav">
           {NAV.map(({ href, Icon, label, match }) => (
@@ -55,7 +55,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
           </div>
           <div className="topbar-mobile-brand">
             <span className="brand-mark"><LogoIcon /></span>
-            <span className="brand-name">{title ?? 'Journal'}</span>
+            <span className="brand-name">{title ?? 'Almanax'}</span>
           </div>
           <div className="topbar-actions">
             <ThemeToggle />

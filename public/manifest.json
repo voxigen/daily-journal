@@ -1,7 +1,7 @@
 {
-  "name": "Daily Journal",
-  "short_name": "Journal",
-  "description": "Ежедневный дневник задач",
+  "name": "Almanax",
+  "short_name": "Almanax",
+  "description": "Личный дневник дня: задачи, планы, питание, вес и слова",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0d10",

@@ -1,0 +1,28 @@
+# Almanax — runs alongside voxmarket on the same server.
+# Joins voxmarket's existing Docker network so the shared Caddy proxy can
+# reach this container by name (almanax:3000) and terminate TLS for almanax.tech.
+services:
+  almanax:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    image: almanax
+    container_name: almanax
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    expose:
+      - "3000"
+    networks:
+      - web
+
+# The network is created by voxmarket's compose; we attach to it as external.
+# Confirm the exact name with `docker network ls` (expected: voxmarket_default).
+networks:
+  web:
+    external: true
+    name: voxmarket_default

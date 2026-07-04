@@ -5,7 +5,7 @@
 const OFFLINE_HTML = `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Нет соединения — Daily Journal</title>
+<title>Нет соединения — Almanax</title>
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0c0d10;color:#e9ebee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;padding:24px}
   .box{max-width:340px}

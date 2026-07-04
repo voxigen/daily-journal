@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.claude
+.env
+.env.*
+!.env.production.example
+npm-debug.log*
+*.md
+.vscode
+.DS_Store
+Dockerfile
+.dockerignore
+docker-compose*.yml

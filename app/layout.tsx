@@ -24,13 +24,13 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: 'Daily Journal',
-  description: 'Ежедневный дневник задач',
+  title: 'Almanax',
+  description: 'Личный дневник дня: задачи, планы, питание, вес и слова',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Journal',
+    title: 'Almanax',
   },
 };
 

@@ -155,7 +155,9 @@ export default function DayView({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => saveDay(), 1500);
   }
-  // Flush pending autosave when leaving the tab/page (no manual save button anymore).
+  // Flush pending autosave when leaving the tab/page — including in-app
+  // navigation (unmount): with the debounce at 1.5s, switching to Статистика
+  // right after typing used to drop the last edit.
   useEffect(() => {
     const flush = () => {
       if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; void saveDay(); }
@@ -164,6 +166,7 @@ export default function DayView({
     window.addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', onVis);
     return () => {
+      flush();
       window.removeEventListener('pagehide', flush);
       document.removeEventListener('visibilitychange', onVis);
     };

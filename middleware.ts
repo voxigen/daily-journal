@@ -1,38 +1,17 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { SESSION_COOKIE, verifySession } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(toSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          toSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
-          toSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
-          );
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
-  // /auth/* handles the magic-link callback — it must be reachable logged-out.
-  if (!user && pathname !== '/login' && !pathname.startsWith('/auth')) {
+  if (!userId && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-  if (user && pathname === '/login') {
+  if (userId && pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url));
   }
-
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {

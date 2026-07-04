@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import * as api from '@/app/actions/data';
 import AppShell from './AppShell';
 import { schedule, newCardFields, isNewCard, Rating, type StoredCard } from '@/lib/fsrs';
 import { sfx } from '@/lib/sound';
@@ -32,7 +32,7 @@ function speak(text: string) {
   } catch { /* speech not available */ }
 }
 
-export default function LearnView({ userId, initialCards }: { userId: string; initialCards: Row[] }) {
+export default function LearnView({ initialCards }: { userId: string; initialCards: Row[] }) {
   const [cards, setCards] = useState<Row[]>(initialCards);
   const [screen, setScreen] = useState<'home' | 'session' | 'done'>('home');
   const [importing, setImporting] = useState(false);
@@ -53,7 +53,6 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
   const lastIdxRef = useRef(-1);
   const doneRef = useRef({ learned: 0, reviewed: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
 
   const dueCount = cards.filter((c) => new Date(c.due).getTime() <= Date.now()).length;
   const remaining = sessionRef.current.reduce((n, w) => n + (w.methods.length - w.step), 0);
@@ -63,13 +62,13 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
     const en = addEn.trim(), ru = addRu.trim();
     if (!en || !ru) return;
     const nf = newCardFields();
-    const { data } = await supabase.from('vocab_cards').insert({ user_id: userId, en, ru, due: nf.due, fsrs: nf.fsrs }).select('id, en, ru, due, fsrs').single();
-    if (data) { setCards((p) => [...p, data as Row]); setAddEn(''); setAddRu(''); }
+    const data = await api.addVocab(en, ru, nf.due, nf.fsrs);
+    setCards((p) => [...p, data as Row]); setAddEn(''); setAddRu('');
   }
 
   async function deleteWord(id: string) {
     setCards((p) => p.filter((c) => c.id !== id));
-    await supabase.from('vocab_cards').delete().eq('id', id);
+    await api.deleteVocab(id);
   }
 
   function startEdit(c: Row) { setEditId(c.id); setEditEn(c.en); setEditRu(c.ru); }
@@ -79,7 +78,7 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
     const id = editId;
     setCards((p) => p.map((c) => (c.id === id ? { ...c, en, ru } : c)));
     setEditId(null);
-    await supabase.from('vocab_cards').update({ en, ru }).eq('id', id);
+    await api.updateVocab(id, en, ru);
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -102,11 +101,10 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
       }
       if (!items.length) { setMsg('Не нашёл слов. Колонка A — английские, B — перевод.'); return; }
       const nf = newCardFields();
-      const payload = items.map((it) => ({ user_id: userId, en: it.en, ru: it.ru, due: nf.due, fsrs: nf.fsrs }));
-      const { data, error } = await supabase.from('vocab_cards').insert(payload).select('id, en, ru, due, fsrs');
-      if (error) { setMsg('Ошибка импорта: ' + error.message); return; }
-      if (data) setCards((p) => [...p, ...(data as Row[])]);
-      setMsg(`Добавлено слов: ${data?.length ?? 0}`);
+      const payload = items.map((it) => ({ en: it.en, ru: it.ru, due: nf.due, fsrs: nf.fsrs }));
+      const data = await api.addVocabBulk(payload);
+      setCards((p) => [...p, ...(data as Row[])]);
+      setMsg(`Добавлено слов: ${data.length}`);
     } catch {
       setMsg('Не удалось прочитать файл — нужен .xlsx/.csv');
     } finally {
@@ -185,7 +183,7 @@ export default function LearnView({ userId, initialCards }: { userId: string; in
       if (isNewCard(w.row.fsrs)) doneRef.current.learned++; else doneRef.current.reviewed++;
       const sched = schedule(w.row.fsrs, rating);
       updated[w.row.id] = { ...w.row, due: sched.due, fsrs: sched.fsrs };
-      await supabase.from('vocab_cards').update({ due: sched.due, fsrs: sched.fsrs }).eq('id', w.row.id);
+      await api.reviewVocab(w.row.id, sched.due, sched.fsrs);
     }
     setCards((prev) => prev.map((c) => updated[c.id] ?? c));
     sfx('success');

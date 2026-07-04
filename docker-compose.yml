@@ -1,28 +1,55 @@
 # Almanax — runs alongside voxmarket on the same server.
-# Joins voxmarket's existing Docker network so the shared Caddy proxy can
-# reach this container by name (almanax:3000) and terminate TLS for almanax.tech.
+# The app container joins voxmarket's network so the shared Caddy proxy can
+# reach it by name (almanax:3000) and terminate TLS for almanax.tech.
+# Postgres is private to Almanax on an internal network.
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: almanax
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: almanax
+    # Low-memory tuning — the box is 2 GB and shared with voxmarket.
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=20"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U almanax"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   almanax:
     build:
       context: .
-      args:
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      dockerfile: Dockerfile
     image: almanax
     container_name: almanax
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      DATABASE_URL: postgres://almanax:${POSTGRES_PASSWORD}@db:5432/almanax
+      SESSION_SECRET: ${SESSION_SECRET}
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
     expose:
       - "3000"
-    networks:
-      - web
+    networks: [web, internal]
 
-# The network is created by voxmarket's compose; we attach to it as external.
-# Confirm the exact name with `docker network ls` (expected: voxmarket_default).
 networks:
+  # voxmarket's network (created by its compose); Caddy lives here.
   web:
     external: true
     name: voxmarket_default
+  internal:
+
+volumes:
+  db_data:
+  uploads:

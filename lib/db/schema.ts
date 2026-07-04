@@ -80,7 +80,7 @@ export const vocabCards = pgTable('vocab_cards', {
   en: text('en').notNull(),
   ru: text('ru').notNull(),
   due: timestamp('due', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
-  fsrs: jsonb('fsrs'),
+  fsrs: jsonb('fsrs').$type<Record<string, unknown>>(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
 });
 

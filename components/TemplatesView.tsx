@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import * as api from '@/app/actions/data';
 import TemplateModal from './TemplateModal';
 import TemplateIcon from './TemplateIcon';
 import AppShell from './AppShell';
@@ -11,28 +11,27 @@ import { Plus, Pencil, Trash2, LayoutGrid, ChevronRight } from 'lucide-react';
 type Field = { name: string; placeholder: string; type: string };
 type Template = { id: string; name: string; color: string; icon: string; fields: Field[] };
 
-export default function TemplatesView({ userId, initialTemplates }: { userId: string; initialTemplates: Template[] }) {
+export default function TemplatesView({ initialTemplates }: { userId: string; initialTemplates: Template[] }) {
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Template | null>(null);
-  const supabase = createClient();
   const router = useRouter();
 
   async function handleCreate(data: Omit<Template, 'id'>) {
-    const { data: t } = await supabase.from('templates').insert({ ...data, user_id: userId }).select().single();
-    if (t) setTemplates([...templates, t]);
+    const t = await api.addTemplate(data);
+    setTemplates([...templates, t]);
   }
 
   async function handleEdit(data: Omit<Template, 'id'>) {
     if (!editing) return;
-    const { data: t } = await supabase.from('templates').update(data).eq('id', editing.id).select().single();
+    const t = await api.updateTemplate(editing.id, data);
     if (t) setTemplates(templates.map((x) => x.id === t.id ? t : x));
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Удалить шаблон? Уже добавленные дела останутся.')) return;
     setTemplates(templates.filter((t) => t.id !== id));
-    await supabase.from('templates').delete().eq('id', id);
+    await api.deleteTemplate(id);
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { logout as logoutAction } from '@/app/actions/auth';
 import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig, Settings, Languages } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import LogoIcon from './LogoIcon';
@@ -19,12 +19,9 @@ const NAV = [
 export default function AppShell({ children, title, subtitle }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
 
   async function logout() {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    await logoutAction();
   }
 
   return (

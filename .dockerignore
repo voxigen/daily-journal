@@ -2,6 +2,7 @@ node_modules
 .next
 .git
 .claude
+uploads
 .env
 .env.*
 !.env.production.example

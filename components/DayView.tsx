@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import * as api from '@/app/actions/data';
 import { formatDuration, compressImage, uid, addDays, mondayIndex } from '@/lib/utils';
 import AddTaskModal from './AddTaskModal';
 import RecurringModal, { RecurringInput } from './RecurringModal';
@@ -56,7 +56,7 @@ type Meal = { id: string; name: string; items: MealItem[] };
 type MealRaw = { name?: string; items?: { name?: string; grams?: number | string; kcal?: number | string; kpg?: number | string }[] };
 type Product = { id: string; name: string; kcal_per_gram: number };
 
-type DayData = { notes?: string; photo_urls?: string[]; meals?: MealRaw[]; weight?: number | null };
+type DayData = { notes?: string; photo_urls?: string[]; meals?: unknown[]; weight?: number | null };
 
 type Props = {
   userId: string;
@@ -87,17 +87,9 @@ function scheduleLabel(r: Recurring): string {
   return days.map((d) => WD_SHORT[d]).join(', ');
 }
 
-const BUCKET = 'day-photos';
-
-function pathFromUrl(url: string): string | null {
-  const marker = `/${BUCKET}/`;
-  const i = url.indexOf(marker);
-  return i === -1 ? null : url.slice(i + marker.length);
-}
-
-function loadMeals(raw?: MealRaw[]): Meal[] {
+function loadMeals(raw?: unknown[]): Meal[] {
   if (!Array.isArray(raw)) return [];
-  return raw.map((m) => ({
+  return (raw as MealRaw[]).map((m) => ({
     id: uid(),
     name: m.name ?? '',
     items: Array.isArray(m.items)
@@ -122,7 +114,7 @@ function mealKcal(m: Meal): number {
 }
 
 export default function DayView({
-  userId, date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, initialRecurring, initialProducts, prevWeight, backHref,
+  date, initialTasks, initialDay, initialPlannedToday, initialPlannedTomorrow, templates, initialRecurring, initialProducts, prevWeight, backHref,
 }: Props) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [plannedToday, setPlannedToday] = useState<Planned[]>(initialPlannedToday);
@@ -147,7 +139,6 @@ export default function DayView({
   const weightRef = useRef(weight); weightRef.current = weight;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
   const router = useRouter();
   const tomorrow = addDays(date, 1);
 
@@ -155,10 +146,10 @@ export default function DayView({
   const parseWeight = (s: string) => { const v = Number(s.trim().replace(',', '.')); return v > 0 ? v : null; };
 
   async function saveDay() {
-    await supabase.from('daily_days').upsert(
-      { user_id: userId, date, notes: notesRef.current, photo_urls: photosRef.current, meals: serializeMeals(mealsRef.current), weight: parseWeight(weightRef.current) },
-      { onConflict: 'user_id,date' }
-    );
+    await api.saveDay({
+      date, notes: notesRef.current, photoUrls: photosRef.current,
+      meals: serializeMeals(mealsRef.current), weight: parseWeight(weightRef.current),
+    });
   }
   function scheduleSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -181,38 +172,33 @@ export default function DayView({
 
   // ── Done tasks ──
   async function handleAddTask(taskData: Omit<Task, 'id'>) {
-    const { data, error } = await supabase.from('day_tasks').insert({ ...taskData, user_id: userId, date }).select().single();
-    if (!error && data) setTasks((p) => [...p, data]);
+    const data = await api.addTask(date, taskData);
+    setTasks((p) => [...p, data]);
   }
   async function handleEditTask(taskData: Omit<Task, 'id'>) {
     if (modal?.mode !== 'edit') return;
-    const { data, error } = await supabase.from('day_tasks').update(taskData).eq('id', modal.task.id).select().single();
-    if (!error && data) setTasks((p) => p.map((t) => (t.id === data.id ? data : t)));
+    const data = await api.updateTask(modal.task.id, date, taskData);
+    if (data) setTasks((p) => p.map((t) => (t.id === data.id ? data : t)));
   }
   async function handleDeleteTask(id: string) {
     setTasks((p) => p.filter((t) => t.id !== id));
-    await supabase.from('day_tasks').delete().eq('id', id);
+    await api.deleteTask(id);
   }
 
   // ── Planned ──
   async function addPlanned(data: Omit<Task, 'id'>) {
-    const { data: row, error } = await supabase.from('planned_tasks').insert({
-      user_id: userId, date: tomorrow, title: data.title,
-      template_id: data.template_id, template_name: data.template_name,
-      template_color: data.template_color, template_icon: data.template_icon,
-    }).select().single();
-    if (!error && row) setPlannedTomorrow((p) => [...p, row]);
+    const row = await api.addPlanned(tomorrow, data);
+    setPlannedTomorrow((p) => [...p, row]);
   }
   async function deletePlanned(id: string, which: 'today' | 'tomorrow') {
     if (which === 'today') setPlannedToday((p) => p.filter((x) => x.id !== id));
     else setPlannedTomorrow((p) => p.filter((x) => x.id !== id));
-    await supabase.from('planned_tasks').delete().eq('id', id);
+    await api.deletePlanned(id);
   }
   async function completePlanned(planned: Planned, data: Omit<Task, 'id'>) {
-    const { data: row, error } = await supabase.from('day_tasks').insert({ ...data, user_id: userId, date }).select().single();
-    if (!error && row) setTasks((p) => [...p, row]);
+    const row = await api.completePlanned(planned.id, date, data);
+    setTasks((p) => [...p, row]);
     setPlannedToday((p) => p.filter((x) => x.id !== planned.id));
-    await supabase.from('planned_tasks').delete().eq('id', planned.id);
   }
 
   // ── Recurring plans ──
@@ -229,49 +215,29 @@ export default function DayView({
     );
     if (!due.length) return;
     (async () => {
-      const rows = due.map((r) => ({
-        user_id: userId, date, title: r.title,
-        template_id: r.template_id ?? null, template_name: r.template_name ?? null,
-        template_color: r.template_color ?? null, template_icon: r.template_icon ?? null,
-        recurring_id: r.id,
-      }));
-      const { data, error } = await supabase.from('planned_tasks').insert(rows).select();
-      if (!error && data?.length) setPlannedToday((p) => [...p, ...data]);
+      const rows = await api.spawnRecurring(date, due.map((r) => ({
+        id: r.id, title: r.title,
+        template_id: r.template_id, template_name: r.template_name,
+        template_color: r.template_color, template_icon: r.template_icon,
+      })));
+      if (rows.length) setPlannedToday((p) => [...p, ...rows]);
       const ids = due.map((r) => r.id);
-      await supabase.from('recurring_plans').update({ last_spawned: date }).in('id', ids);
       setRecurring((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, last_spawned: date } : r)));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function addRecurring(input: RecurringInput) {
-    const { data, error } = await supabase.from('recurring_plans').insert({
-      user_id: userId, title: input.title,
-      template_id: input.template_id ?? null, template_name: input.template_name ?? null,
-      template_color: input.template_color ?? null, template_icon: input.template_icon ?? null,
-      freq: input.freq, weekdays: input.weekdays, active: true,
-    }).select().single();
-    if (error || !data) return;
-    setRecurring((p) => [...p, data]);
-    // If it's due today, drop a to-do tile in right away.
     const wd = mondayIndex(date);
-    const dueToday = data.freq === 'daily' || (data.freq === 'weekly' && (data.weekdays ?? []).includes(wd));
-    if (dueToday) {
-      const { data: row } = await supabase.from('planned_tasks').insert({
-        user_id: userId, date, title: data.title,
-        template_id: data.template_id ?? null, template_name: data.template_name ?? null,
-        template_color: data.template_color ?? null, template_icon: data.template_icon ?? null,
-        recurring_id: data.id,
-      }).select().single();
-      if (row) setPlannedToday((p) => [...p, row]);
-      await supabase.from('recurring_plans').update({ last_spawned: date }).eq('id', data.id);
-      setRecurring((p) => p.map((x) => (x.id === data.id ? { ...x, last_spawned: date } : x)));
-    }
+    const dueToday = input.freq === 'daily' || (input.freq === 'weekly' && (input.weekdays ?? []).includes(wd));
+    const { recurring: rec, planned } = await api.addRecurring(input, date, dueToday);
+    setRecurring((p) => [...p, rec]);
+    if (planned) setPlannedToday((p) => [...p, planned]);
   }
 
   async function deleteRecurring(id: string) {
     setRecurring((p) => p.filter((r) => r.id !== id));
-    await supabase.from('recurring_plans').delete().eq('id', id);
+    await api.deleteRecurring(id);
   }
 
   // ── Meals ──
@@ -302,23 +268,23 @@ export default function DayView({
     const name = it.name.trim();
     const kpg = Number(quickKpg);
     if (!name || !(kpg > 0)) return;
-    const { data } = await supabase.from('products').insert({ user_id: userId, name, kcal_per_gram: kpg }).select().single();
-    if (data) { setProducts((p) => [...p, data]); pickProduct(mealId, it, data); }
+    const data = await api.addProduct(name, kpg);
+    setProducts((p) => [...p, data]); pickProduct(mealId, it, data);
     setQuickKpg('');
   }
 
   // ── Products (кладовая) ──
   async function addProduct(name: string, kpg: number) {
-    const { data } = await supabase.from('products').insert({ user_id: userId, name: name.trim(), kcal_per_gram: kpg }).select().single();
-    if (data) setProducts((p) => [...p, data]);
+    const data = await api.addProduct(name, kpg);
+    setProducts((p) => [...p, data]);
   }
   async function editProduct(id: string, name: string, kpg: number) {
     setProducts((p) => p.map((x) => (x.id === id ? { ...x, name: name.trim(), kcal_per_gram: kpg } : x)));
-    await supabase.from('products').update({ name: name.trim(), kcal_per_gram: kpg }).eq('id', id);
+    await api.updateProduct(id, name, kpg);
   }
   async function deleteProduct(id: string) {
     setProducts((p) => p.filter((x) => x.id !== id));
-    await supabase.from('products').delete().eq('id', id);
+    await api.deleteProduct(id);
   }
 
   // ── Photos ──
@@ -328,11 +294,12 @@ export default function DayView({
     setUploadingPhoto(true);
     try {
       const compressed = await compressImage(file);
-      const path = `${userId}/${date}/${Date.now()}.jpg`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, { contentType: 'image/jpeg' });
-      if (error) { alert('Не удалось загрузить фото: ' + error.message); return; }
-      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const next = [...photosRef.current, publicUrl];
+      const form = new FormData();
+      form.append('file', compressed, 'photo.jpg');
+      form.append('date', date);
+      const res = await api.uploadPhoto(form);
+      if ('error' in res) { alert('Не удалось загрузить фото: ' + res.error); return; }
+      const next = [...photosRef.current, res.url];
       photosRef.current = next; setPhotoUrls(next);
       await saveDay();
     } finally {
@@ -343,8 +310,7 @@ export default function DayView({
   async function handleDeletePhoto(url: string) {
     const next = photosRef.current.filter((u) => u !== url);
     photosRef.current = next; setPhotoUrls(next);
-    const path = pathFromUrl(url);
-    if (path) await supabase.storage.from(BUCKET).remove([path]);
+    await api.deletePhoto(url);
     await saveDay();
   }
 

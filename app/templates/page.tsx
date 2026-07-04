@@ -1,17 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { requireUserId } from '@/lib/session';
+import { getTemplates } from '@/lib/queries';
 import TemplatesView from '@/components/TemplatesView';
 
 export default async function TemplatesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: templates } = await supabase
-    .from('templates')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at');
-
-  return <TemplatesView userId={user.id} initialTemplates={templates ?? []} />;
+  const uid = await requireUserId();
+  const templates = await getTemplates(uid);
+  return <TemplatesView userId={uid} initialTemplates={templates} />;
 }

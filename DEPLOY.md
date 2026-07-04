@@ -1,59 +1,69 @@
 # Деплой Almanax на свой сервер (рядом с voxmarket)
 
-Almanax собирается в Docker-контейнер, подключается к сети voxmarket и
-обслуживается общим Caddy (он же выпускает TLS для `almanax.tech`).
-Supabase остаётся облачным — база на сервере не нужна.
+Almanax = Next.js-контейнер + свой Postgres, всё в Docker. Обслуживается общим
+Caddy (он же выпускает TLS для `almanax.tech`). Фото хранятся на диске (volume).
 
 ## 0. DNS (reg.ru)
-В зоне almanax.tech reg.ru по умолчанию ставит парковочные A-записи
-(`@`/`www` → свой IP). Отредактируй их (карандаш), а не создавай новые:
+Отредактируй парковочные записи (карандаш), не создавай новые:
 
     A   @     → 138.16.160.5
     A   www   → 138.16.160.5
 
-Подожди, пока `nslookup almanax.tech` не отдаст 138.16.160.5 (обычно минуты, редко до часа).
+Подожди, пока `nslookup almanax.tech 8.8.8.8` не отдаст 138.16.160.5.
 
-## 1. Забрать код на сервер
+## 1. Swap (важно на 2 ГБ RAM — иначе сборка может упасть по OOM)
+
+    fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+## 2. Забрать код
 
     cd /root
     git clone https://github.com/voxigen/daily-journal.git almanax
     cd almanax
 
-## 2. Прописать ключи Supabase
+## 3. Секреты
 
     cp .env.production.example .env
-    nano .env          # вставь NEXT_PUBLIC_SUPABASE_URL и ..._ANON_KEY
+    nano .env
+    #   POSTGRES_PASSWORD  — openssl rand -hex 24
+    #   SESSION_SECRET     — openssl rand -hex 32
 
-## 3. Собрать и запустить
+## 4. Собрать и запустить (Postgres + приложение)
 
     docker compose up -d --build
 
-Проверить, что контейнер поднялся и отвечает:
+Проверить:
 
-    docker ps | grep almanax
-    docker exec almanax wget -qO- http://localhost:3000 | head -c 200
+    docker compose ps
+    docker exec almanax wget -qO- http://localhost:3000/login | head -c 120
 
-## 4. Добавить домен в Caddy
-Открой `/root/voxmarket/Caddyfile` и в КОНЕЦ допиши отдельный блок
-(не трогая существующий `{$DOMAIN} { ... }` — это voxmarket):
+Схема БД создаётся автоматически при первом старте Postgres (db/init.sql).
+
+## 5. Домен в Caddy
+Открой `/root/voxmarket/Caddyfile`, в КОНЕЦ добавь отдельный блок
+(не трогая существующий `{$DOMAIN} { ... }`):
 
     almanax.tech {
         reverse_proxy almanax:3000
     }
 
-Затем перечитать конфиг без простоя:
+Перечитать без простоя:
 
     docker exec voxmarket-caddy-1 caddy reload --config /etc/caddy/Caddyfile
 
-Caddy сам выпустит сертификат Let's Encrypt при первом заходе на https://almanax.tech.
+Caddy сам выпустит сертификат при первом заходе на https://almanax.tech.
 
-## 5. Supabase → разрешить новый домен
-Dashboard → Authentication → URL Configuration:
-- Site URL: `https://almanax.tech`
-- Redirect URLs: добавить `https://almanax.tech/auth/callback`
+## 6. Первый аккаунт
+Открой https://almanax.tech — на экране входа нажми «Зарегистрироваться»,
+заведи почту+пароль. Аккаунт создаётся сразу (без подтверждения по почте).
 
 ## Обновление после изменений в коде
 
     cd /root/almanax && git pull && docker compose up -d --build
+    docker image prune -f
 
-Старые образы можно чистить: `docker image prune -f`
+## Схема БД менялась?
+init.sql применяется только при ПЕРВОМ старте (пустой том). Later-миграции —
+вручную: `docker exec -it almanax-db-1 psql -U almanax -d almanax` и выполнить SQL
+(или через любой клиент). Держи db/init.sql и lib/db/schema.ts в синхроне.

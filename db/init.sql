@@ -76,6 +76,8 @@ create table if not exists planned_tasks (
   created_at     timestamptz default now()
 );
 create unique index if not exists planned_recurring_day on planned_tasks (user_id, recurring_id, date);
+create index if not exists planned_user_date on planned_tasks (user_id, date);
+create index if not exists day_tasks_user_date on day_tasks (user_id, date);
 
 create table if not exists vocab_cards (
   id         uuid primary key default gen_random_uuid(),

@@ -13,12 +13,16 @@ export default function ConstellationBackground() {
     if (!ctx) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let w = 0, h = 0, raf = 0, colTimer = 0;
+    let w = 0, h = 0, raf = 0;
     let accent = '#5a63d8';
 
     function readAccent() {
       accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#5a63d8').trim();
     }
+    // Accent changes only on explicit user action — observe it instead of
+    // polling getComputedStyle (forced style recalc) inside the render loop.
+    const mo = new MutationObserver(readAccent);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-accent', 'style'] });
 
     type P = { x: number; y: number; vx: number; vy: number };
     let pts: P[] = [];
@@ -52,12 +56,20 @@ export default function ConstellationBackground() {
     window.addEventListener('mouseout', onLeave);
 
     const LINK = 132, MLINK = 175;
+    // 30fps halves the O(N²) link work with no visible difference; drift is
+    // dt-scaled so the dots move at exactly the same speed as at 60fps.
+    const FRAME_MS = 1000 / 30;
+    let lastDraw = 0, lastTick = 0;
     function frame(now: number) {
-      if (now - colTimer > 500) { readAccent(); colTimer = now; }
+      raf = requestAnimationFrame(frame);
+      if (now - lastDraw < FRAME_MS - 1) return;
+      lastDraw = now;
+      const dt = lastTick ? Math.min((now - lastTick) / (1000 / 60), 4) : 1; // in 60fps-frame units
+      lastTick = now;
       ctx!.clearRect(0, 0, w, h);
 
       for (const p of pts) {
-        p.x += p.vx; p.y += p.vy;
+        p.x += p.vx * dt; p.y += p.vy * dt;
         if (p.x < 0 || p.x > w) p.vx *= -1;
         if (p.y < 0 || p.y > h) p.vy *= -1;
       }
@@ -86,14 +98,13 @@ export default function ConstellationBackground() {
       ctx!.fillStyle = accent;
       for (const p of pts) { ctx!.beginPath(); ctx!.arc(p.x, p.y, 1.7, 0, 6.283); ctx!.fill(); }
       ctx!.globalAlpha = 1;
-
-      raf = requestAnimationFrame(frame);
     }
 
     raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);
+      mo.disconnect();
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseout', onLeave);

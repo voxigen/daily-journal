@@ -332,7 +332,6 @@ export default function ShaderBackground({ mode }: { mode: string }) {
       }
     }
 
-    let colTimer = 0;
     function readColors() {
       const cs = getComputedStyle(document.documentElement);
       const a = hexToRgb(cs.getPropertyValue('--accent') || '#5a63d8');
@@ -343,6 +342,11 @@ export default function ShaderBackground({ mode }: { mode: string }) {
       gl!.uniform3f(uC, c[0], c[1], c[2]);
       gl!.uniform1f(uMix, document.documentElement.dataset.theme === 'light' ? 0.55 : 0.85);
     }
+    // Colors only change when the user flips theme/accent — observe those
+    // attribute writes instead of calling getComputedStyle (a forced style
+    // recalc) every 400ms inside the render loop.
+    const mo = new MutationObserver(() => { if (ready) readColors(); });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-accent', 'style'] });
 
     // Without preventDefault the context is gone for good and the canvas freezes on its
     // last (often partial) frame — the stuck rectangular block. Rebuild on restore.
@@ -355,11 +359,17 @@ export default function ShaderBackground({ mode }: { mode: string }) {
 
     let raf = 0;
     const start = performance.now();
+    // Ambient motion here is very slow, so 30fps is visually identical to 60 —
+    // but it halves the GPU load, leaving headroom for the actual UI (the
+    // "everything stutters with a shader background" complaint on weak GPUs).
+    const FRAME_MS = 1000 / 30;
+    let lastDraw = 0;
     function frame(now: number) {
       raf = requestAnimationFrame(frame);
       if (!ready || gl!.isContextLost()) return;
+      if (now - lastDraw < FRAME_MS - 1) return;
+      lastDraw = now;
       syncSize();
-      if (now - colTimer > 400) { readColors(); colTimer = now; }
       gl!.uniform1f(uTime, (now - start) / 1000);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
       gl!.flush();   // nudge ANGLE to hand the frame over promptly
@@ -368,6 +378,7 @@ export default function ShaderBackground({ mode }: { mode: string }) {
 
     return () => {
       cancelAnimationFrame(raf);
+      mo.disconnect();
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
       const ext = gl.getExtension('WEBGL_lose_context');

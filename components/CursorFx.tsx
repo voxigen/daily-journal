@@ -72,7 +72,14 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
     const parts: Particle[] = [];
     let lastSpawn = 0, lastX = -100, lastY = -100;
     let accent: [number, number, number] = [90, 99, 216];
-    let colTimer = 0;
+    let canvasDirty = false;       // canvas has pixels from the previous frame
+    const readAccent = () => {
+      accent = hexToRgb(getComputedStyle(root).getPropertyValue('--accent') || '#5a63d8');
+    };
+    readAccent();
+    // Re-read only when the theme/accent actually changes — no per-frame polling.
+    const mo = new MutationObserver(readAccent);
+    mo.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-accent', 'style'] });
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     function resize() {
@@ -132,10 +139,6 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
       const dt = lastT ? Math.min((now - lastT) / 1000, 0.05) : 1 / 60;
       lastT = now;
       const step = dt * 60;   // 1 at 60fps — scales the old per-frame constants
-      if (now - colTimer > 500) {
-        colTimer = now;
-        accent = hexToRgb(getComputedStyle(root).getPropertyValue('--accent') || '#5a63d8');
-      }
       const el = elRef.current, dot = dotRef.current;
       if (el) {
         const k = cursor === 'ring' ? 1 - Math.exp(-dt * 15) : 1;
@@ -151,8 +154,13 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
         }
       }
       if (!fxOn || !ctx || !cv) return;
+      // Idle mouse ⇒ nothing to draw: skip the full-screen clear entirely
+      // (it's a real cost on large canvases every frame).
+      const busy = fx === 'glow' ? visible : parts.length > 0;
+      if (!busy && !canvasDirty) return;
       const [cr, cg, cb] = accent;
       ctx.clearRect(0, 0, cv.width, cv.height);
+      canvasDirty = busy;
       if (fx === 'glow') {
         const gk = 1 - Math.exp(-dt * 9);
         gx += (mx - gx) * gk; gy += (my - gy) * gk;
@@ -186,6 +194,7 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
 
     return () => {
       cancelAnimationFrame(raf);
+      mo.disconnect();
       root.classList.remove('cursor-none');
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onDown);

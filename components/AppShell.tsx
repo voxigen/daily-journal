@@ -30,6 +30,7 @@ export default function AppShell({ children, title, subtitle }: Props) {
         <div className="sidebar-brand">
           <span className="brand-mark"><LogoIcon /></span>
           <span className="brand-name">Almanax</span>
+          <span className="sidebar-brand-end"><ThemeToggle /></span>
         </div>
         <nav className="sidebar-nav">
           {NAV.map(({ href, Icon, label, match }) => (
@@ -46,13 +47,9 @@ export default function AppShell({ children, title, subtitle }: Props) {
 
       <div className="main">
         <header className="topbar">
-          <div className="topbar-title">
-            {title && <h1>{title}</h1>}
-            {subtitle && <div className="sub">{subtitle}</div>}
-          </div>
           <div className="topbar-mobile-brand">
             <span className="brand-mark"><LogoIcon /></span>
-            <span className="brand-name">{title ?? 'Almanax'}</span>
+            <span className="brand-name">Almanax</span>
           </div>
           <div className="topbar-actions">
             <ThemeToggle />
@@ -61,7 +58,15 @@ export default function AppShell({ children, title, subtitle }: Props) {
           </div>
         </header>
 
-        <main className="content">{children}</main>
+        <main className="content">
+          {title && (
+            <div className="page-title">
+              <h1>{title}</h1>
+              {subtitle && <div className="page-sub">{subtitle}</div>}
+            </div>
+          )}
+          {children}
+        </main>
       </div>
 
       <nav className="tabbar">

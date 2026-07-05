@@ -155,11 +155,11 @@ svg { display: block; }
 .icon-lg { width: 22px; height: 22px; stroke-width: 1.9; }
 
 /* ───────────────── Buttons / inputs ───────────────── */
-/* Filled inputs: a quiet tinted field instead of a grey outline box. */
+/* Filled inputs: a quiet tinted field with a constant hairline border. */
 input, textarea, select {
   width: 100%;
   background: var(--surface-2);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   color: var(--text);
@@ -170,7 +170,7 @@ input, textarea, select {
   resize: none;
 }
 input::placeholder, textarea::placeholder { color: var(--text-3); }
-input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { border-color: var(--border-2); }
+input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { border-color: color-mix(in srgb, var(--text-3) 45%, var(--border-2)); }
 input:focus, textarea:focus, select:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 select option { background: var(--surface); }
 textarea { min-height: 84px; line-height: 1.6; }
@@ -214,8 +214,8 @@ textarea { min-height: 84px; line-height: 1.6; }
 /* ───────────────── Auth ───────────────── */
 .auth-page { min-height: calc(100vh / var(--zoom)); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
 .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 36px 30px; width: 100%; max-width: 380px; box-shadow: var(--shadow); }
-.auth-brand { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); margin-bottom: 20px; }
-.auth-brand svg { width: 24px; height: 24px; }
+.auth-brand { display: inline-flex; align-items: center; justify-content: center; color: var(--accent); margin-bottom: 16px; }
+.auth-brand svg { width: 38px; height: 38px; }
 .auth-title { font-size: 23px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 5px; }
 .auth-sub { color: var(--text-2); font-size: 14px; margin-bottom: 28px; }
 .auth-field { margin-bottom: 13px; }
@@ -233,9 +233,9 @@ textarea { min-height: 84px; line-height: 1.6; }
 }
 .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 20px; }
 .sidebar-brand-end { margin-left: auto; }
-/* Flat mark — the gradient-glow tile read as "AI template" */
-.brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); flex-shrink: 0; }
-.brand-mark svg { width: 17px; height: 17px; }
+/* Bare glyph, no tile: the logo is just a mark in the accent colour */
+.brand-mark { display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.brand-mark svg { width: 23px; height: 23px; }
 .brand-name { font-size: 15.5px; font-weight: 650; letter-spacing: -0.02em; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
 .side-link {
@@ -473,8 +473,8 @@ textarea { min-height: 84px; line-height: 1.6; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: var(--shadow-lg); }
 
 /* Day textareas */
-.day-textarea { width: 100%; background: var(--surface-2); border: 1px solid transparent; border-radius: var(--radius); padding: 13px 15px; color: var(--text); font-size: 14px; font-family: inherit; resize: none; line-height: 1.6; outline: none; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; }
-.day-textarea:hover:not(:focus) { border-color: var(--border-2); }
+.day-textarea { width: 100%; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: var(--radius); padding: 13px 15px; color: var(--text); font-size: 14px; font-family: inherit; resize: none; line-height: 1.6; outline: none; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+.day-textarea:hover:not(:focus) { border-color: color-mix(in srgb, var(--text-3) 45%, var(--border-2)); }
 .day-textarea:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .day-textarea::placeholder { color: var(--text-3); }
 .save-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; }

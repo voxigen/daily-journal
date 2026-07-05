@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from './AppShell';
 import { Check, Palette, Sparkles, SunMoon, Type, ALargeSmall, Layers, Clock, Wand2, Volume2, Shapes, MousePointer2 } from 'lucide-react';
-import { LOGO_ICONS, LOGO_KEYS } from './LogoIcon';
+import { LOGO_ICONS, LOGO_KEYS, DEFAULT_LOGO } from './LogoIcon';
 
 type ThemeChoice = 'light' | 'dark' | 'auto';
 
@@ -121,7 +121,7 @@ export default function SettingsView() {
   const [sound, setSoundState] = useState('sfx');
   const [cursor, setCursorState] = useState('system');
   const [cursorfx, setCursorfxState] = useState('none');
-  const [logo, setLogoState] = useState('notebook');
+  const [logo, setLogoState] = useState(DEFAULT_LOGO);
   const [customHex, setCustomHex] = useState('#5a63d8');
   const [tz, setTzState] = useState('auto');
   const [mounted, setMounted] = useState(false);
@@ -141,7 +141,8 @@ export default function SettingsView() {
     const savedCursor = document.documentElement.dataset.cursor || 'system';
     setCursorState(CURSORS.some((c) => c.key === savedCursor) ? savedCursor : 'system');
     setCursorfxState(document.documentElement.dataset.cursorfx || 'none');
-    setLogoState(document.documentElement.dataset.logo || 'notebook');
+    const savedLogo = document.documentElement.dataset.logo || DEFAULT_LOGO;
+    setLogoState(LOGO_KEYS.includes(savedLogo) ? savedLogo : DEFAULT_LOGO);
     setCustomHex(localStorage.getItem('accentCustom') || '#5a63d8');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);

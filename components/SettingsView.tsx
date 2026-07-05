@@ -122,6 +122,7 @@ export default function SettingsView() {
   const [cursor, setCursorState] = useState('system');
   const [cursorfx, setCursorfxState] = useState('none');
   const [logo, setLogoState] = useState(DEFAULT_LOGO);
+  const [logofx, setLogofxState] = useState('anim');
   const [customHex, setCustomHex] = useState('#5a63d8');
   const [tz, setTzState] = useState('auto');
   const [mounted, setMounted] = useState(false);
@@ -143,6 +144,7 @@ export default function SettingsView() {
     setCursorfxState(document.documentElement.dataset.cursorfx || 'none');
     const savedLogo = document.documentElement.dataset.logo || DEFAULT_LOGO;
     setLogoState(LOGO_KEYS.includes(savedLogo) ? savedLogo : DEFAULT_LOGO);
+    setLogofxState(document.documentElement.dataset.logofx || 'anim');
     setCustomHex(localStorage.getItem('accentCustom') || '#5a63d8');
     setTzState(localStorage.getItem('tzChoice') || 'auto');
   }, []);
@@ -199,6 +201,12 @@ export default function SettingsView() {
     document.documentElement.dataset.logo = key;
     localStorage.setItem('logo', key);
     window.dispatchEvent(new Event('logochange'));
+  }
+
+  function chooseLogofx(key: string) {
+    setLogofxState(key);
+    document.documentElement.dataset.logofx = key;
+    localStorage.setItem('logofx', key);
   }
 
   function chooseBg(key: string) {
@@ -349,6 +357,12 @@ export default function SettingsView() {
               );
             })}
           </div>
+          <div className="cursor-group-label" style={{ marginTop: 14 }}>Анимация</div>
+          <div className="segment">
+            <button className={logofx === 'anim' ? 'sel' : ''} onClick={() => chooseLogofx('anim')}>Вкл</button>
+            <button className={logofx === 'none' ? 'sel' : ''} onClick={() => chooseLogofx('none')}>Выкл</button>
+          </div>
+          <div className="setting-hint">Живой значок: мерцание звезды, лучи рассвета, полёт спутника, качание месяца.</div>
         </div>
       </div>
 

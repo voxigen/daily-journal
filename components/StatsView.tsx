@@ -165,7 +165,7 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, wei
         <div className="empty">
           <div className="empty-icon"><ChartColumnBig /></div>
           <div className="empty-title">Пока нечего показывать</div>
-          <p>Записывай дела — здесь появятся графики времени, категорий и активности</p>
+          <p>Записывай дела, и здесь появятся графики времени, категорий и активности</p>
         </div>
       </AppShell>
     );

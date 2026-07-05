@@ -44,11 +44,11 @@ export default function ProductsModal({ products, onAdd, onEdit, onDelete, onClo
             <button className="btn btn-primary" onClick={add} disabled={!canAdd} aria-label="Добавить"><Plus className="icon-sm" /></button>
           </div>
           <div className="setting-hint" style={{ marginTop: 8 }}>
-            Калорийность на 1 грамм (например, белый хлеб ≈ 2.6, мёд ≈ 3.1). В приёме пищи начни писать название — продукт подставится, впишешь граммы, калории посчитаются сами.
+            Калорийность на 1 грамм (например, белый хлеб ≈ 2.6, мёд ≈ 3.1). В приёме пищи начни писать название, и продукт подставится: впишешь граммы, калории посчитаются сами.
           </div>
 
           <div className="prod-list">
-            {sorted.length === 0 && <div className="prod-empty">Пока нет продуктов — добавь первый выше.</div>}
+            {sorted.length === 0 && <div className="prod-empty">Пока нет продуктов. Добавь первый выше.</div>}
             {sorted.map((p) => (
               <div className="prod-row" key={p.id}>
                 <input

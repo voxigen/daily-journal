@@ -7,6 +7,17 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
+});
+
+// Одноразовые токены писем (подтверждение почты / сброс пароля).
+// Храним только sha256-хэш токена — утечка БД не даёт рабочих ссылок.
+export const emailTokens = pgTable('email_tokens', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  purpose: text('purpose').notNull(), // 'verify' | 'reset'
+  expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
 });
 

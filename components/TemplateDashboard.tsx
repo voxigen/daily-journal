@@ -127,7 +127,7 @@ export default function TemplateDashboard({ template, tasks, today }: Props) {
         <div className="empty">
           <div className="empty-icon"><ChartColumnBig /></div>
           <div className="empty-title">Пока нет записей</div>
-          <p>Добавь дело по этому шаблону на вкладке «Сегодня» — здесь появится статистика</p>
+          <p>Добавь дело по этому шаблону на вкладке «Сегодня», и здесь появится статистика</p>
         </div>
       ) : (
         <>
@@ -185,7 +185,7 @@ export default function TemplateDashboard({ template, tasks, today }: Props) {
                 {fs.series.length > 1 ? (
                   <Sparkline series={fs.series} color={color} />
                 ) : (
-                  <div className="spark-single">Одна запись — график появится после второй</div>
+                  <div className="spark-single">Пока одна запись. График появится после второй</div>
                 )}
               </div>
             </div>

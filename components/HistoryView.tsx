@@ -29,7 +29,7 @@ export default function HistoryView({ days, totalDays, totalTasks }: { days: Day
         <div className="empty">
           <div className="empty-icon"><CalendarDays /></div>
           <div className="empty-title">История пуста</div>
-          <p>Записывай дела на вкладке «Сегодня» — они появятся здесь</p>
+          <p>Записывай дела на вкладке «Сегодня», и они появятся здесь</p>
         </div>
       ) : (
         days.map((day) => {

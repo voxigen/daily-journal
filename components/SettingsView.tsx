@@ -332,7 +332,7 @@ export default function SettingsView() {
               <input type="color" value={customHex} onChange={(e) => chooseCustomAccent(e.target.value)} />
             </label>
           </div>
-          <div className="setting-hint">Последний кружок — свой цвет: акцент применится ко всему приложению и логотипу.</div>
+          <div className="setting-hint">Последний кружок задаёт свой цвет: акцент применится ко всему приложению и логотипу.</div>
         </div>
       </div>
 
@@ -395,7 +395,7 @@ export default function SettingsView() {
               <button key={f.key} className={`pill${cursorfx === f.key ? ' sel' : ''}`} onClick={() => chooseCursorfx(f.key)}>{f.label}</button>
             ))}
           </div>
-          <div className="setting-hint">Курсор в цвете акцента + эффект за ним (шлейф, искры или свечение). Работает с мышью — на телефоне не влияет.</div>
+          <div className="setting-hint">Курсор в цвете акцента + эффект за ним (шлейф, искры или свечение). Работает с мышью, на телефоне не влияет.</div>
         </div>
       </div>
 
@@ -407,7 +407,7 @@ export default function SettingsView() {
               <button key={s.key} className={sound === s.key ? 'sel' : ''} onClick={() => chooseSound(s.key)}>{s.label}</button>
             ))}
           </div>
-          <div className="setting-hint">«Эффекты» — звуки на действия. «Эффекты + фон» добавляет тихий эмбиент под шейдерные фоны (туманность, галактика, чернила, сияние, лава-лампа, волны). Запускается после первого касания.</div>
+          <div className="setting-hint">«Эффекты» включают звуки на действия. «Эффекты + фон» добавляет тихий эмбиент под шейдерные фоны (туманность, галактика, чернила, сияние, лава-лампа, волны). Запускается после первого касания.</div>
         </div>
       </div>
 

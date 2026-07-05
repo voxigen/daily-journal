@@ -99,14 +99,14 @@ export default function LearnView({ initialCards }: { userId: string; initialCar
         if (['en', 'english', 'word', 'слово', 'англ', 'английский'].includes(en.toLowerCase())) continue;
         items.push({ en, ru });
       }
-      if (!items.length) { setMsg('Не нашёл слов. Колонка A — английские, B — перевод.'); return; }
+      if (!items.length) { setMsg('Не нашёл слов. Колонка A: английские, колонка B: перевод.'); return; }
       const nf = newCardFields();
       const payload = items.map((it) => ({ en: it.en, ru: it.ru, due: nf.due, fsrs: nf.fsrs }));
       const data = await api.addVocabBulk(payload);
       setCards((p) => [...p, ...(data as Row[])]);
       setMsg(`Добавлено слов: ${data.length}`);
     } catch {
-      setMsg('Не удалось прочитать файл — нужен .xlsx/.csv');
+      setMsg('Не удалось прочитать файл, нужен .xlsx или .csv');
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -120,7 +120,7 @@ export default function LearnView({ initialCards }: { userId: string; initialCar
     const reviews = due.filter((c) => !isNewCard(c.fsrs));
     const news = due.filter((c) => isNewCard(c.fsrs));
     const picked = [...reviews, ...news].slice(0, SESSION_MAX);
-    if (!picked.length) { setMsg('Нет слов к повторению — добавь слова или загляни позже.'); return; }
+    if (!picked.length) { setMsg('Нет слов к повторению. Добавь слова или загляни позже.'); return; }
     sessionRef.current = picked.map((row) => {
       const methods: Method[] = isNewCard(row.fsrs)
         ? [...shuffle<Method>(['en_ru', 'ru_en']), 'type']
@@ -266,7 +266,7 @@ export default function LearnView({ initialCards }: { userId: string; initialCar
           <button className="btn btn-secondary" disabled={importing} onClick={() => fileRef.current?.click()}>
             {importing ? 'Читаю…' : 'Выбрать файл'}
           </button>
-          <div className="setting-hint">Колонка A — английские слова, B — перевод. Строка-заголовок пропускается.</div>
+          <div className="setting-hint">Колонка A: английские слова, колонка B: перевод. Строка-заголовок пропускается.</div>
           {msg && <div className="setting-hint" style={{ color: 'var(--accent)' }}>{msg}</div>}
         </div>
       </div>

@@ -37,6 +37,12 @@ services:
       DATABASE_URL: postgres://almanax:${POSTGRES_PASSWORD}@db:5432/almanax
       SESSION_SECRET: ${SESSION_SECRET}
       UPLOADS_DIR: /app/uploads
+      APP_URL: ${APP_URL:-https://almanax.tech}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-Almanax <no-reply@almanax.tech>}
     volumes:
       - uploads:/app/uploads
     expose:

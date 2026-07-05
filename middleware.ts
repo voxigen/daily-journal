@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/auth';
 
+// Страницы, доступные без сессии: логин + ссылки из писем.
+const PUBLIC_PATHS = ['/login', '/verify', '/reset'];
+
 export async function middleware(request: NextRequest) {
   const userId = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
-  if (!userId && pathname !== '/login') {
+  if (!userId && !PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   if (userId && pathname === '/login') {

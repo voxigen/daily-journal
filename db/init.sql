@@ -5,11 +5,22 @@
 create extension if not exists pgcrypto;
 
 create table if not exists users (
-  id            uuid primary key default gen_random_uuid(),
-  email         text not null unique,
-  password_hash text not null,
-  created_at    timestamptz default now()
+  id             uuid primary key default gen_random_uuid(),
+  email          text not null unique,
+  password_hash  text not null,
+  email_verified boolean not null default false,
+  created_at     timestamptz default now()
 );
+
+-- Одноразовые токены писем (подтверждение почты / сброс пароля); хранится sha256-хэш.
+create table if not exists email_tokens (
+  token_hash text primary key,
+  user_id    uuid not null references users(id) on delete cascade,
+  purpose    text not null, -- 'verify' | 'reset'
+  expires_at timestamptz not null,
+  created_at timestamptz default now()
+);
+create index if not exists email_tokens_user_idx on email_tokens (user_id);
 
 create table if not exists templates (
   id         uuid primary key default gen_random_uuid(),

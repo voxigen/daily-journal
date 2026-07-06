@@ -340,31 +340,31 @@ textarea { min-height: 84px; line-height: 1.6; }
   .content { padding: 20px 16px 104px; }
   .page-title { margin: 0 0 22px; }
   .page-title h1 { font-size: 24px; }
-  /* Расширяющийся таббар: неактивные — только иконка, активный раскрывается
-     в пилюлю с подписью. Так 6 пунктов не давятся в узкие столбики. */
+  /* Нижняя навигация: иконка в пилюле + подпись всегда видна — понятно на любой
+     странице (в т.ч. настройках, где ничего не активно). Достаточно высокая. */
   .tabbar {
-    display: flex; align-items: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: stretch; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     background: var(--surface);
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
     border-top: 1px solid var(--border);
-    gap: 2px; padding: 8px 8px max(14px, env(safe-area-inset-bottom));
+    padding: 9px 6px max(11px, env(safe-area-inset-bottom));
   }
   .tab-link {
-    flex: 0 1 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 7px;
-    padding: 9px 11px; border-radius: 999px; background: none; border: none; cursor: pointer;
-    color: var(--text-3); font-family: inherit;
-    transition: background 0.2s var(--ease), color 0.18s, padding 0.2s var(--ease);
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 4px 2px 2px; background: none; border: none; cursor: pointer;
+    color: var(--text-3); font-family: inherit; transition: color 0.15s;
   }
-  .tab-link svg { width: 22px; height: 22px; stroke-width: 1.9; flex-shrink: 0; }
-  .tab-ico { display: inline-flex; align-items: center; justify-content: center; }
-  .tab-label {
-    font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
-    max-width: 0; opacity: 0; transition: max-width 0.25s var(--ease), opacity 0.18s;
+  .tab-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 5px 17px; border-radius: 999px;
+    transition: background 0.2s var(--ease), transform 0.14s var(--ease);
   }
-  .tab-link.active { color: var(--accent); background: var(--accent-soft); flex: 1 1 auto; }
-  .tab-link.active .tab-label { max-width: 120px; opacity: 1; }
-  .tab-link:active { transform: scale(0.94); }
+  .tab-link svg { width: 23px; height: 23px; stroke-width: 1.9; }
+  .tab-label { font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  .tab-link.active { color: var(--accent); }
+  .tab-link.active .tab-ico { background: var(--accent-soft); }
+  .tab-link:active .tab-ico { transform: scale(0.9); }
 }
 
 /* ───────────────── Page bits ───────────────── */
@@ -781,6 +781,16 @@ textarea { min-height: 84px; line-height: 1.6; }
 .bg-prev.waves { background:
   repeating-linear-gradient(100deg, transparent 0 9px, color-mix(in srgb, var(--accent) 45%, transparent) 10px 12px, transparent 13px 26px),
   linear-gradient(180deg, #08080e, #0d0a16); }
+.bg-prev.plasma { background:
+  radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--accent) 75%, transparent), transparent 45%),
+  radial-gradient(circle at 75% 60%, color-mix(in srgb, var(--blue) 65%, transparent), transparent 45%),
+  radial-gradient(circle at 55% 85%, #e11d6a, transparent 48%),
+  conic-gradient(from 120deg at 50% 50%, var(--accent), var(--blue), #e11d6a, var(--accent));
+  filter: saturate(1.2); }
+.bg-prev.vortex { background:
+  repeating-radial-gradient(circle at 50% 50%, transparent 0 4px, color-mix(in srgb, var(--accent) 55%, transparent) 5px 7px, transparent 8px 12px),
+  conic-gradient(from 0deg at 50% 50%, var(--accent) 0deg, transparent 60deg, var(--blue) 180deg, transparent 240deg, var(--accent) 360deg),
+  #07070e; }
 .bg-prev.particles { background-color: var(--surface-2);
   background-image: radial-gradient(circle, var(--accent) 1.6px, transparent 1.8px);
   background-size: 16px 16px; }
@@ -960,7 +970,9 @@ textarea { min-height: 84px; line-height: 1.6; }
 }
 .wk-cell.sel .wk-cell-wd, .wk-cell.sel .wk-cell-day { color: var(--accent-contrast); }
 .wk-cell.sel .wk-cell-dot i { background: var(--accent-contrast); }
-.wk-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 15px 0 3px; }
+.wk-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; color: var(--text-3); font-size: 13px; padding: 26px 0 20px; }
+.wk-empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.wk-empty-icon svg { width: 20px; height: 20px; }
 .section-label .wk-nav-tag { margin-left: 2px; }
 @media (max-width: 460px) {
   .wk-strip { gap: 4px; }

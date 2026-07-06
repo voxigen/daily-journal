@@ -103,7 +103,12 @@ export default function WeekView({ today, offset, dates, initialPlanned, templat
           {selItems.length > 0 && <span className="section-aside">{selItems.length}</span>}
         </div>
         <div className={`task-list${selItems.length === 0 ? ' task-list-empty' : ''}`}>
-          {selItems.length === 0 && <div className="wk-empty">На этот день планов пока нет</div>}
+          {selItems.length === 0 && (
+            <div className="wk-empty">
+              <span className="wk-empty-icon"><CalendarRange /></span>
+              <span>На этот день планов пока нет</span>
+            </div>
+          )}
           {selItems.map((p) => {
             const color = p.template_color ?? 'var(--accent)';
             return (

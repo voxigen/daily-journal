@@ -48,6 +48,8 @@ const BACKGROUNDS: { key: string; label: string }[] = [
   { key: 'aurora', label: 'Сияние' },
   { key: 'lava', label: 'Лава-лампа' },
   { key: 'waves', label: 'Волны' },
+  { key: 'plasma', label: 'Плазма' },
+  { key: 'vortex', label: 'Воронка' },
   { key: 'particles', label: 'Частицы' },
   { key: 'stars', label: 'Звёзды' },
   { key: 'grid', label: 'Сетка' },

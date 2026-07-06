@@ -106,6 +106,15 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
     drone(131, 'sine', 0.4);
     drone(196, 'sine', 0.18, -6);
     noisePad(900, 3, 0.4, 0.11, 420);
+  } else if (key === 'plasma') {   // vibrant, wobbling
+    drone(110, 'sine', 0.34);
+    drone(165, 'triangle', 0.17, 11);
+    drone(220, 'sine', 0.10, -9);
+    noisePad(1200, 4, 0.3, 0.19, 640);
+  } else if (key === 'vortex') {   // hypnotic, swirling pull
+    drone(82, 'sine', 0.42);
+    drone(123, 'sine', 0.18, -8);
+    noisePad(720, 5, 0.44, 0.15, 380);
   } else {                         // ink — watery, low and bubbly
     drone(70, 'sine', 0.5);
     drone(105, 'sine', 0.2, -5);
@@ -129,7 +138,7 @@ function buildAmbient(c: AudioContext, dest: AudioNode, key: string) {
 }
 
 export function setAmbient(bg: string) {
-  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink', 'aurora', 'lava', 'waves'].includes(bg)) { stopAmbient(); return; }
+  if (soundMode() !== 'full' || !['nebula', 'galaxy', 'ink', 'aurora', 'lava', 'waves', 'plasma', 'vortex'].includes(bg)) { stopAmbient(); return; }
   const c = getCtx();
   if (!c || !master) return;
   if (ambient && ambient.key === bg) return;

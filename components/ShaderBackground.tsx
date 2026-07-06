@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2, aurora: 3, lava: 4, waves: 5 };
+const MODES: Record<string, number> = { nebula: 0, galaxy: 1, ink: 2, aurora: 3, lava: 4, waves: 5, plasma: 6, vortex: 7 };
 
 const VERT = `attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
@@ -207,7 +207,7 @@ void main(){
       outc = mix(uC, mix(uC, uA, 0.7), body*0.8);
       outc = mix(outc, mix(uC, vec3(0.9, 0.42, 0.4), 0.55), clamp(rim, 0.0, 1.0)*0.45);
     }
-  } else {
+  } else if (uMode < 5.5) {
     // ── Waves: glowing neon ribbons drifting across the screen ──
     vec3 acc = vec3(0.0);
     float glow = 0.0;
@@ -230,6 +230,50 @@ void main(){
       outc = col;
     } else {
       outc = mix(uC, mix(uC, uA, 0.75), clamp(glow*0.30, 0.0, 0.8));
+    }
+  } else if (uMode < 6.5) {
+    // ── Plasma: morphing psychedelic colour field ──
+    vec2 p = uv*3.0;
+    float tt = t*0.35;
+    float v = sin(p.x*1.7 + tt)
+            + sin(p.y*1.9 - tt*0.8)
+            + sin((p.x + p.y)*1.3 + tt*1.2)
+            + sin(length(p)*2.2 - tt*1.5)
+            + (fbm(p*0.8 + tt*0.2) - 0.5)*3.0;
+    float m  = 0.5 + 0.5*sin(v*1.05);
+    float m2 = 0.5 + 0.5*cos(v*1.7 + 1.5);
+    if (!light) {
+      vec3 col = mix(uC, uA, smoothstep(0.1, 0.9, m));
+      col = mix(col, uB, smoothstep(0.25, 0.95, m2)*0.7);
+      col = mix(col, vec3(0.95, 0.3, 0.55), pow(m, 4.0)*0.45);   // hot magenta crests
+      col += pow(m2, 6.0)*0.14;
+      outc = col;
+    } else {
+      vec3 col = mix(uC, mix(uC, uA, 0.75), smoothstep(0.1, 0.9, m));
+      col = mix(col, mix(uC, uB, 0.6), smoothstep(0.3, 0.95, m2)*0.5);
+      outc = col;
+    }
+  } else {
+    // ── Vortex: swirling tunnel pulling toward the centre ──
+    float r = length(uv);
+    float a = atan(uv.y, uv.x);
+    float tt = t*0.3;
+    float spiral = sin(a*4.0 + log(r + 0.06)*6.0 - tt*3.0);
+    float rings  = sin(1.0/(r + 0.09)*3.0 + tt*4.0);          // rings rushing inward
+    float warp   = fbm(vec2(a*1.5, r*3.0 - tt));
+    float pat = (0.5 + 0.5*spiral*rings) * smoothstep(1.35, 0.08, r) * (0.55 + 0.55*warp);
+    pat = clamp(pat, 0.0, 1.0);
+    float core = exp(-r*r*7.0);
+    if (!light) {
+      vec3 col = mix(uC, uA, pat);
+      col = mix(col, uB, pat*pat*0.55);
+      col += mix(vec3(1.0), uA, 0.5)*core;
+      col += uA*pat*0.35;
+      outc = col;
+    } else {
+      vec3 col = mix(uC, mix(uC, uA, 0.7), pat);
+      col = mix(col, mix(uC, uA, 0.9), core*0.7);
+      outc = col;
     }
   }
 

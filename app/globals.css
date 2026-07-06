@@ -286,7 +286,9 @@ textarea { min-height: 84px; line-height: 1.6; }
 .topbar-actions { display: flex; align-items: center; gap: 4px; }
 
 .content { flex: 1; width: 100%; max-width: 768px; margin: 0 auto; padding: 30px 20px 44px; animation: pageIn 0.3s var(--ease); }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* Только прозрачность, без transform: transform на .content создавал backdrop-
+   контекст и стеклянные карточки на миг «матовели» при переходе между вкладками. */
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .content { animation: none; } }
 
 /* Editorial page header */
@@ -760,7 +762,7 @@ textarea { min-height: 84px; line-height: 1.6; }
 
 /* ── Surface style application (cards + sidebar/topbar/tabbar) ── */
 .metric, .callout, .task-list, .meal, .chart-card, .setting-card, .tpl-list, .hist-day, .sheet, .auth-card,
-.sidebar, .topbar, .tabbar {
+.weight-card, .photo-add, .sidebar, .topbar, .tabbar {
   background: var(--card-bg);
   backdrop-filter: var(--card-filter);
   -webkit-backdrop-filter: var(--card-filter);
@@ -768,20 +770,20 @@ textarea { min-height: 84px; line-height: 1.6; }
 :root[data-surface='glass'] .metric, :root[data-surface='glass'] .callout, :root[data-surface='glass'] .task-list,
 :root[data-surface='glass'] .meal, :root[data-surface='glass'] .chart-card, :root[data-surface='glass'] .setting-card,
 :root[data-surface='glass'] .tpl-list, :root[data-surface='glass'] .hist-day, :root[data-surface='glass'] .sheet,
-:root[data-surface='glass'] .auth-card {
+:root[data-surface='glass'] .auth-card, :root[data-surface='glass'] .weight-card, :root[data-surface='glass'] .photo-add {
   border-color: color-mix(in srgb, var(--text) 16%, transparent);
   box-shadow: 0 6px 28px rgba(0,0,0,0.20);
 }
 :root[data-surface='matte'] .metric, :root[data-surface='matte'] .callout, :root[data-surface='matte'] .task-list,
 :root[data-surface='matte'] .meal, :root[data-surface='matte'] .chart-card, :root[data-surface='matte'] .setting-card,
 :root[data-surface='matte'] .tpl-list, :root[data-surface='matte'] .hist-day, :root[data-surface='matte'] .sheet,
-:root[data-surface='matte'] .auth-card {
+:root[data-surface='matte'] .auth-card, :root[data-surface='matte'] .weight-card, :root[data-surface='matte'] .photo-add {
   border-color: color-mix(in srgb, var(--text) 9%, transparent);
 }
 :root[data-surface='soft'] .metric, :root[data-surface='soft'] .callout, :root[data-surface='soft'] .task-list,
 :root[data-surface='soft'] .meal, :root[data-surface='soft'] .chart-card, :root[data-surface='soft'] .setting-card,
 :root[data-surface='soft'] .tpl-list, :root[data-surface='soft'] .hist-day, :root[data-surface='soft'] .sheet,
-:root[data-surface='soft'] .auth-card {
+:root[data-surface='soft'] .auth-card, :root[data-surface='soft'] .weight-card, :root[data-surface='soft'] .photo-add {
   border-color: transparent;
   box-shadow: var(--shadow);
 }

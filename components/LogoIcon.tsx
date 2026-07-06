@@ -59,7 +59,11 @@ export const LOGO_KEYS = Object.keys(LOGO_ICONS);
 export const DEFAULT_LOGO = 'mark';
 
 export default function LogoIcon() {
-  const [key, setKey] = useState(DEFAULT_LOGO);
+  // Ленивая инициализация из dataset.logo (его ставит themeScript до первой
+  // отрисовки). Иначе при ремаунте AppShell на навигации мелькал дефолтный знак.
+  const [key, setKey] = useState<string>(() =>
+    (typeof document !== 'undefined' && document.documentElement.dataset.logo) || DEFAULT_LOGO,
+  );
   useEffect(() => {
     const read = () => setKey(document.documentElement.dataset.logo || DEFAULT_LOGO);
     read();

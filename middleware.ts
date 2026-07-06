@@ -30,12 +30,14 @@ function clientIp(req: NextRequest): string {
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// В проде инлайн-скрипты пускаем только по nonce (script-src без 'unsafe-inline').
-// В dev Next гоняет HMR через eval/inline + websocket, поэтому там политика мягче.
-function buildCsp(nonce: string): string {
+// script-src допускает 'unsafe-inline': pre-paint themeScript и регистрация SW —
+// инлайновые. Пробовали nonce, но React в <head> пересоздаёт nonce'd-скрипт, и он
+// не исполняется во время парсинга — тема переставала применяться до первой
+// отрисовки. React и так экранирует любой вывод, так что reflected-XSS маловероятен.
+function buildCsp(): string {
   const scriptSrc = isDev
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : `script-src 'self' 'nonce-${nonce}'`;
+    : "script-src 'self' 'unsafe-inline'";
   const connectSrc = isDev ? "connect-src 'self' ws: wss:" : "connect-src 'self'";
   return [
     "default-src 'self'",
@@ -65,8 +67,7 @@ function withSecurity(res: NextResponse, csp: string): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const nonce = btoa(crypto.randomUUID());
-  const csp = buildCsp(nonce);
+  const csp = buildCsp();
 
   // Несуществующие пути (напр. /console, /phpinfo.php, /find?q=… от сканеров) —
   // голый 404 без рендера страницы. Это разом убирает и «доступный debug-эндпоинт»
@@ -95,12 +96,7 @@ export async function middleware(request: NextRequest) {
     return withSecurity(NextResponse.redirect(new URL('/', request.url)), csp);
   }
 
-  // Прокидываем nonce в приложение: Next сам проставит его своим скриптам
-  // (читает из CSP на запросе), а layout — нашим инлайн-скриптам через x-nonce.
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-  requestHeaders.set('Content-Security-Policy', csp);
-  return withSecurity(NextResponse.next({ request: { headers: requestHeaders } }), csp);
+  return withSecurity(NextResponse.next(), csp);
 }
 
 export const config = {

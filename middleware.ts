@@ -12,24 +12,95 @@ function isKnownRoute(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
+// Edge-safe лимитер в памяти: сервер один инстанс → одна карта на процесс.
+const buckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(key: string, max: number, windowMs: number): boolean {
+  const now = Date.now();
+  if (buckets.size > 5000) buckets.forEach((b, k) => { if (now > b.resetAt) buckets.delete(k); });
+  const b = buckets.get(key);
+  if (!b || now > b.resetAt) { buckets.set(key, { count: 1, resetAt: now + windowMs }); return true; }
+  if (b.count >= max) return false;
+  b.count++;
+  return true;
+}
+
+function clientIp(req: NextRequest): string {
+  return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+}
+
+const isDev = process.env.NODE_ENV === 'development';
+
+// В проде инлайн-скрипты пускаем только по nonce (script-src без 'unsafe-inline').
+// В dev Next гоняет HMR через eval/inline + websocket, поэтому там политика мягче.
+function buildCsp(nonce: string): string {
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : `script-src 'self' 'nonce-${nonce}'`;
+  const connectSrc = isDev ? "connect-src 'self' ws: wss:" : "connect-src 'self'";
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    connectSrc,
+    "manifest-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    'upgrade-insecure-requests',
+  ].join('; ');
+}
+
+function withSecurity(res: NextResponse, csp: string): NextResponse {
+  res.headers.set('Content-Security-Policy', csp);
+  res.headers.set('X-Frame-Options', 'DENY');
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+  res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  return res;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildCsp(nonce);
 
-  // Несуществующие пути (напр. /console, /phpinfo.php от сканеров) НЕ редиректим
-  // на /login: это возвращало 200 и выглядело как «доступный debug-эндпоинт».
-  // Пропускаем дальше — Next не найдёт маршрут и отрисует not-found с 404.
+  // Несуществующие пути (напр. /console, /phpinfo.php, /find?q=… от сканеров) —
+  // голый 404 без рендера страницы. Это разом убирает и «доступный debug-эндпоинт»
+  // (был редирект → 200), и «отражённый XSS» (Next зашивал URL с ?q= в инлайн-скрипт).
   if (!isKnownRoute(pathname)) {
-    return NextResponse.next();
+    return withSecurity(new NextResponse('Not Found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } }), csp);
+  }
+
+  // Реальный отпор перебору: формы отправляются server-action'ами POST'ом на
+  // /login и /reset. Больше лимита за окно — честный 429 на уровне edge,
+  // ещё до БД. Дополняет проверки в самих экшенах (lib/ratelimit).
+  if (request.method === 'POST' && (pathname === '/login' || pathname === '/reset')) {
+    if (!rateLimit(`authpost:${clientIp(request)}`, 10, 15 * 60_000)) {
+      return withSecurity(
+        new NextResponse('Too Many Requests', { status: 429, headers: { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '900' } }),
+        csp,
+      );
+    }
   }
 
   const userId = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
   if (!userId && !PUBLIC_PATHS.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return withSecurity(NextResponse.redirect(new URL('/login', request.url)), csp);
   }
   if (userId && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
+    return withSecurity(NextResponse.redirect(new URL('/', request.url)), csp);
   }
-  return NextResponse.next();
+
+  // Прокидываем nonce в приложение: Next сам проставит его своим скриптам
+  // (читает из CSP на запросе), а layout — нашим инлайн-скриптам через x-nonce.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+  return withSecurity(NextResponse.next({ request: { headers: requestHeaders } }), csp);
 }
 
 export const config = {

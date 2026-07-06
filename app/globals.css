@@ -151,9 +151,7 @@ html.cursor-none, html.cursor-none * { cursor: none !important; }
   0%, 100% { box-shadow: 0 0 14px 3px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 34px 10px color-mix(in srgb, var(--accent) 32%, transparent); }
   50% { box-shadow: 0 0 20px 5px color-mix(in srgb, var(--accent) 88%, transparent), 0 0 48px 16px color-mix(in srgb, var(--accent) 44%, transparent); }
 }
-/* Точка — минимальный точный курсор, виден на любом фоне */
-.cursor-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; mix-blend-mode: difference; }
-/* Прицел — тонкий крест в цвете акцента */
+/* Прицел — тонкий крест с точкой в центре, в цвете акцента */
 .cursor-cross { width: 24px; height: 24px; }
 .cursor-cross::before, .cursor-cross::after {
   content: ''; position: absolute; top: 50%; left: 50%; background: var(--accent);
@@ -161,6 +159,11 @@ html.cursor-none, html.cursor-none * { cursor: none !important; }
 }
 .cursor-cross::before { width: 24px; height: 1.6px; transform: translate(-50%, -50%); }
 .cursor-cross::after { width: 1.6px; height: 24px; transform: translate(-50%, -50%); }
+/* Пятно — мягкий световой круг-«прожектор» */
+.cursor-spotlight {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%);
+}
 
 /* WebGL shader canvas (nebula/waves) + constellation network canvas */
 .bg-shader, .bg-net { position: fixed; top: 0; left: 0; width: calc(100vw / var(--zoom)); height: calc(100vh / var(--zoom)); z-index: -1; pointer-events: none; display: block; transform: translateZ(0); will-change: transform; }
@@ -337,24 +340,31 @@ textarea { min-height: 84px; line-height: 1.6; }
   .content { padding: 20px 16px 104px; }
   .page-title { margin: 0 0 22px; }
   .page-title h1 { font-size: 24px; }
+  /* Расширяющийся таббар: неактивные — только иконка, активный раскрывается
+     в пилюлю с подписью. Так 6 пунктов не давятся в узкие столбики. */
   .tabbar {
-    display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
     background: var(--surface);
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
     border-top: 1px solid var(--border);
-    padding: 7px 8px max(16px, env(safe-area-inset-bottom));
+    gap: 2px; padding: 8px 8px max(14px, env(safe-area-inset-bottom));
   }
   .tab-link {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 4px 4px 6px; background: none; border: none; cursor: pointer;
-    color: var(--text-3); font-family: inherit; transition: color 0.13s;
+    flex: 0 1 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 9px 11px; border-radius: 999px; background: none; border: none; cursor: pointer;
+    color: var(--text-3); font-family: inherit;
+    transition: background 0.2s var(--ease), color 0.18s, padding 0.2s var(--ease);
   }
-  .tab-link svg { width: 21px; height: 21px; stroke-width: 1.9; }
-  .tab-ico { display: inline-flex; align-items: center; justify-content: center; padding: 3px 13px; border-radius: 999px; transition: background 0.18s var(--ease); }
-  .tab-link.active { color: var(--accent); }
-  .tab-link.active .tab-ico { background: var(--accent-soft); }
-  .tab-label { font-size: 11px; font-weight: 500; }
+  .tab-link svg { width: 22px; height: 22px; stroke-width: 1.9; flex-shrink: 0; }
+  .tab-ico { display: inline-flex; align-items: center; justify-content: center; }
+  .tab-label {
+    font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
+    max-width: 0; opacity: 0; transition: max-width 0.25s var(--ease), opacity 0.18s;
+  }
+  .tab-link.active { color: var(--accent); background: var(--accent-soft); flex: 1 1 auto; }
+  .tab-link.active .tab-label { max-width: 120px; opacity: 1; }
+  .tab-link:active { transform: scale(0.94); }
 }
 
 /* ───────────────── Page bits ───────────────── */
@@ -874,16 +884,17 @@ textarea { min-height: 84px; line-height: 1.6; }
    часто включён по умолчанию, а пользователь явно попросил анимацию тумблером. */
 
 /* ── Tile FX (data-tilefx='neon') — пульсирующее свечение акцентом на карточках ── */
-:root[data-tilefx='neon'] .metric, :root[data-tilefx='neon'] .task-list, :root[data-tilefx='neon'] .meal, :root[data-tilefx='neon'] .chart-card, :root[data-tilefx='neon'] .setting-card, :root[data-tilefx='neon'] .tpl-list, :root[data-tilefx='neon'] .hist-day, :root[data-tilefx='neon'] .callout {
+/* box-shadow БЕЗ !important: в каскаде !important-объявление перебивает анимацию,
+   поэтому свечение раньше стояло статикой. Обводку !important держим (она не
+   анимируется), а свечением полностью управляет neonPulse. */
+:root[data-tilefx='neon'] .metric, :root[data-tilefx='neon'] .task-list, :root[data-tilefx='neon'] .meal, :root[data-tilefx='neon'] .chart-card, :root[data-tilefx='neon'] .setting-card, :root[data-tilefx='neon'] .tpl-list, :root[data-tilefx='neon'] .hist-day, :root[data-tilefx='neon'] .callout, :root[data-tilefx='neon'] .weight-card {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 26%, transparent) !important;
-  animation: neonPulse 3.4s ease-in-out infinite;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  animation: neonPulse 2.6s ease-in-out infinite;
 }
-/* Анимация свечения пересиливает !important на box-shadow, поэтому база остаётся
-   фолбэком (напр. при reduced-motion), а дыхание идёт поверх. */
 @keyframes neonPulse {
-  0%, 100% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 9px color-mix(in srgb, var(--accent) 15%, transparent); }
-  50% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 62%, transparent), 0 0 28px color-mix(in srgb, var(--accent) 44%, transparent); }
+  0%, 100% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent); }
+  50% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 75%, transparent), 0 0 34px color-mix(in srgb, var(--accent) 55%, transparent); }
 }
 
 /* Numbers that update in place shouldn't jiggle — fixed-width digits */
@@ -930,21 +941,25 @@ textarea { min-height: 84px; line-height: 1.6; }
 .wk-today-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .wk-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 26px; }
-.wk-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 2px 7px; border: 1px solid var(--border-2); border-radius: 13px; background: var(--surface); cursor: pointer; font-family: inherit; color: var(--text); transition: transform 0.13s var(--ease), border-color 0.13s, background 0.13s; }
-.wk-cell:hover { border-color: var(--text-3); }
+.wk-cell { min-height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 9px 2px 8px; border: 1px solid var(--border-2); border-radius: 14px; background: var(--surface); cursor: pointer; font-family: inherit; color: var(--text); transition: transform 0.15s var(--ease), border-color 0.15s, background 0.15s, box-shadow 0.15s; }
+.wk-cell:hover { border-color: var(--text-3); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
 .wk-cell:active { transform: scale(0.95); }
 .wk-cell-wd { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.03em; }
-.wk-cell-day { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.wk-cell-dot { height: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
-.wk-cell-dot i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: block; }
-.wk-cell-dot b { font-size: 10px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; }
-.wk-cell.today { border-color: var(--accent); }
-.wk-cell.today .wk-cell-wd { color: var(--accent); }
-.wk-cell.past:not(.sel) { opacity: 0.5; }
-.wk-cell.sel { background: var(--accent); border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.wk-cell.weekend .wk-cell-wd { color: color-mix(in srgb, var(--red) 45%, var(--text-3)); }
+.wk-cell-day { font-size: 16.5px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wk-cell-dot { height: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.wk-cell-dot i { width: 4.5px; height: 4.5px; border-radius: 50%; background: var(--accent); display: block; }
+.wk-cell.today:not(.sel) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.wk-cell.today:not(.sel) .wk-cell-wd { color: var(--accent); }
+.wk-cell.past:not(.sel):not(.today) { opacity: 0.5; }
+.wk-cell.sel {
+  border-color: transparent;
+  background: linear-gradient(155deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: translateY(-2px);
+}
 .wk-cell.sel .wk-cell-wd, .wk-cell.sel .wk-cell-day { color: var(--accent-contrast); }
 .wk-cell.sel .wk-cell-dot i { background: var(--accent-contrast); }
-.wk-cell.sel .wk-cell-dot b { color: var(--accent-contrast); }
 .wk-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 15px 0 3px; }
 .section-label .wk-nav-tag { margin-left: 2px; }
 @media (max-width: 460px) {

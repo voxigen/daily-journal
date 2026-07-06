@@ -80,12 +80,14 @@ export default function WeekView({ today, offset, dates, initialPlanned, templat
           return (
             <button
               key={date}
-              className={`wk-cell${i === selected ? ' sel' : ''}${isToday ? ' today' : ''}${isPast ? ' past' : ''}`}
+              className={`wk-cell${i === selected ? ' sel' : ''}${isToday ? ' today' : ''}${isPast ? ' past' : ''}${i >= 5 ? ' weekend' : ''}`}
               onClick={() => setSelected(i)}
             >
               <span className="wk-cell-wd">{WD_SHORT[i]}</span>
               <span className="wk-cell-day">{dayNum(date)}</span>
-              <span className="wk-cell-dot">{n > 0 && <i />}{n > 1 && <b>{n}</b>}</span>
+              <span className="wk-cell-dot">
+                {Array.from({ length: Math.min(n, 3) }).map((_, k) => <i key={k} />)}
+              </span>
             </button>
           );
         })}

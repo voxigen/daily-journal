@@ -817,9 +817,9 @@ textarea { min-height: 84px; line-height: 1.6; }
 @keyframes logoRay { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 @keyframes logoOrbit { to { transform: rotate(360deg); } }
 @keyframes logoLuna { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .lg-spark, .lg-ray, .lg-orbit, .lg-luna { animation: none !important; }
-}
+/* Переключатель «Анимация: Выкл» (data-logofx='none') — единственный способ
+   их отключить. Системный prefers-reduced-motion не глушим: на Windows LTSC он
+   часто включён по умолчанию, а пользователь явно попросил анимацию тумблером. */
 
 /* ── Tile FX (data-tilefx='neon') — accent glow on cards ── */
 :root[data-tilefx='neon'] .metric, :root[data-tilefx='neon'] .task-list, :root[data-tilefx='neon'] .meal, :root[data-tilefx='neon'] .chart-card, :root[data-tilefx='neon'] .setting-card, :root[data-tilefx='neon'] .tpl-list, :root[data-tilefx='neon'] .hist-day, :root[data-tilefx='neon'] .callout {

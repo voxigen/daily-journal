@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import AppShell from './AppShell';
 import TemplateIcon from './TemplateIcon';
-import { formatDuration, addDays, mondayIndex, MONTHS_RU } from '@/lib/utils';
+import { formatDuration, formatDateShort, addDays, mondayIndex, MONTHS_RU } from '@/lib/utils';
 import { Flame, Clock, ListChecks, TrendingUp, ChartColumnBig, PieChart, CalendarDays, Scale } from 'lucide-react';
 
 type TaskRow = {
@@ -209,7 +209,7 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, wei
             {d.bars.map((b) => {
               const pct = d.barsUseTime ? (b.m / d.barMaxM) : (b.c / d.barMaxC);
               const h = b.m || b.c ? Math.max(4, Math.round(pct * 100)) : 0;
-              const tip = `${new Date(b.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${b.c} дел${b.m ? ', ' + formatDuration(b.m) : ''}`;
+              const tip = `${formatDateShort(b.date)}: ${b.c} дел${b.m ? ', ' + formatDuration(b.m) : ''}`;
               return (
                 <div className="bar-col" key={b.date} title={tip}>
                   <div className="bar-track">
@@ -238,7 +238,7 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, wei
             <div className="bars">
               {d.kcalBars.map((b) => {
                 const h = b.kcal ? Math.max(4, Math.round((b.kcal / d.kcalMax) * 100)) : 0;
-                const tip = `${new Date(b.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${b.kcal} ккал`;
+                const tip = `${formatDateShort(b.date)}: ${b.kcal} ккал`;
                 return (
                   <div className="bar-col" key={b.date} title={tip}>
                     <div className="bar-track"><div className="bar" style={{ height: `${h}%`, background: 'var(--amber)' }} /></div>
@@ -288,13 +288,13 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, wei
                   />
                   {d.wPts.map((p) => (
                     <circle key={p.date} cx={p.x} cy={p.y} r="3.5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="1.5">
-                      <title>{`${new Date(p.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${p.w} кг`}</title>
+                      <title>{`${formatDateShort(p.date)}: ${p.w} кг`}</title>
                     </circle>
                   ))}
                 </svg>
                 <div className="wchart-x">
-                  <span>{new Date(d.wFirstDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-                  <span>{new Date(d.wLastDate + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                  <span>{formatDateShort(d.wFirstDate)}</span>
+                  <span>{formatDateShort(d.wLastDate)}</span>
                 </div>
               </>
             )}
@@ -362,7 +362,7 @@ export default function StatsView({ today, tasks, dayDates, kcalByDate = {}, wei
                   <span
                     key={i}
                     className={`heat-cell l${cell.level}${cell.future ? ' future' : ''}`}
-                    title={cell.future ? '' : `${new Date(cell.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}: ${cell.c} дел${cell.m ? ', ' + formatDuration(cell.m) : ''}`}
+                    title={cell.future ? '' : `${formatDateShort(cell.date)}: ${cell.c} дел${cell.m ? ', ' + formatDuration(cell.m) : ''}`}
                   />
                 ))}
               </div>

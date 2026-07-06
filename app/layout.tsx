@@ -3,6 +3,7 @@ import { Inter, Manrope, Lora } from 'next/font/google';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import SoundController from '@/components/SoundController';
 import CursorFx from '@/components/CursorFx';
+import ThemeApplier from '@/components/ThemeApplier';
 import './globals.css';
 
 const inter = Inter({
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
+        <ThemeApplier />
         <AnimatedBackground />
         <SoundController />
         <CursorFx />

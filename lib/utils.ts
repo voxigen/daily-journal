@@ -43,6 +43,11 @@ export function mondayIndex(dateStr: string): number {
 }
 
 export const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+// Родительный падеж (6 июля) и дни недели — чтобы форматировать даты вручную,
+// без toLocaleDateString: его ICU на сервере (Docker Node) и в браузере может
+// расходиться, ломая гидрацию и сбрасывая тему.
+const MONTHS_GEN_RU = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const WEEKDAYS_RU = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 
 export const MAX_TASK_MINUTES = 15 * 60; // лимит на одно дело — 15 часов
 
@@ -52,15 +57,13 @@ export function uid(): string {
 }
 
 export function formatDateRu(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${WEEKDAYS_RU[d.getDay()]}, ${d.getDate()} ${MONTHS_GEN_RU[d.getMonth()]}`;
 }
 
 export function formatDateShort(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'short',
-  });
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}`;
 }
 
 // Compress image via canvas before upload

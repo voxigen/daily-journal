@@ -74,6 +74,52 @@ export const LOGO_ICONS: Record<string, Mark> = {
       <path className="lg-bloom" d="M12 4.5c.75 4.65 2.85 6.75 7.5 7.5-4.65.75-6.75 2.85-7.5 7.5-.75-4.65-2.85-6.75-7.5-7.5 4.65-.75 6.75-2.85 7.5-7.5Z" />
     </svg>
   ),
+  // Атом — ядро и три орбиты с электронами, каждая крутится со своей скоростью
+  atom: () => (
+    <svg viewBox="0 0 24 24" {...stroke}>
+      <g transform="rotate(0 12 12)"><g className="lg-atom-o1">
+        <ellipse cx="12" cy="12" rx="9" ry="3.5" />
+        <circle cx="21" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      </g></g>
+      <g transform="rotate(60 12 12)"><g className="lg-atom-o2">
+        <ellipse cx="12" cy="12" rx="9" ry="3.5" />
+        <circle cx="21" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      </g></g>
+      <g transform="rotate(120 12 12)"><g className="lg-atom-o3">
+        <ellipse cx="12" cy="12" rx="9" ry="3.5" />
+        <circle cx="21" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      </g></g>
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  // Эквалайзер — пять столбцов, прыгают вразнобой
+  equalizer: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <rect className="lg-eq lg-eq1" x="2.6" y="6" width="2.6" height="12" rx="1.3" />
+      <rect className="lg-eq lg-eq2" x="6.8" y="6" width="2.6" height="12" rx="1.3" />
+      <rect className="lg-eq lg-eq3" x="11" y="6" width="2.6" height="12" rx="1.3" />
+      <rect className="lg-eq lg-eq4" x="15.2" y="6" width="2.6" height="12" rx="1.3" />
+      <rect className="lg-eq lg-eq5" x="19.4" y="6" width="2.6" height="12" rx="1.3" />
+    </svg>
+  ),
+  // Мандала — два кольца лепестков, вращаются навстречу
+  mandala: () => (
+    <svg viewBox="0 0 24 24" {...stroke}>
+      <g className="lg-mandala-a">
+        <circle cx="12" cy="6" r="2.6" />
+        <circle cx="18" cy="12" r="2.6" />
+        <circle cx="12" cy="18" r="2.6" />
+        <circle cx="6" cy="12" r="2.6" />
+      </g>
+      <g className="lg-mandala-b">
+        <circle cx="15.5" cy="8.5" r="1.8" />
+        <circle cx="15.5" cy="15.5" r="1.8" />
+        <circle cx="8.5" cy="15.5" r="1.8" />
+        <circle cx="8.5" cy="8.5" r="1.8" />
+      </g>
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  ),
 };
 export const LOGO_KEYS = Object.keys(LOGO_ICONS);
 export const DEFAULT_LOGO = 'mark';

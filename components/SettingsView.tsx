@@ -63,6 +63,8 @@ const CURSORS: { key: string; label: string }[] = [
   { key: 'system', label: 'Системный' },
   { key: 'ring', label: 'Кольцо' },
   { key: 'glow', label: 'Неон' },
+  { key: 'dot', label: 'Точка' },
+  { key: 'cross', label: 'Прицел' },
 ];
 
 const CURSOR_FX: { key: string; label: string }[] = [
@@ -70,6 +72,9 @@ const CURSOR_FX: { key: string; label: string }[] = [
   { key: 'trail', label: 'Шлейф' },
   { key: 'sparks', label: 'Искры' },
   { key: 'glow', label: 'Свечение' },
+  { key: 'ribbon', label: 'Лента' },
+  { key: 'orbit', label: 'Орбита' },
+  { key: 'bubbles', label: 'Пузыри' },
 ];
 
 const SOUNDS: { key: string; label: string }[] = [

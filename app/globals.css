@@ -134,12 +134,33 @@ button:focus-visible, a:focus-visible, [role='button']:focus-visible { outline: 
 html.cursor-none, html.cursor-none * { cursor: none !important; }
 .cursor-fx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 9998; pointer-events: none; }
 .cursor-el { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.15s; will-change: transform; }
-.cursor-ring { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.cursor-ring-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+/* Кольцо — мягкая обводка с еле заметным ореолом */
+.cursor-ring {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 85%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 7%, transparent), 0 0 12px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.cursor-ring-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
+/* Неон — светящаяся точка, ореол пульсирует */
 .cursor-glow {
   width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
-  box-shadow: 0 0 14px 3px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 34px 10px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: cursorGlowPulse 2s ease-in-out infinite;
 }
+@keyframes cursorGlowPulse {
+  0%, 100% { box-shadow: 0 0 14px 3px color-mix(in srgb, var(--accent) 70%, transparent), 0 0 34px 10px color-mix(in srgb, var(--accent) 32%, transparent); }
+  50% { box-shadow: 0 0 20px 5px color-mix(in srgb, var(--accent) 88%, transparent), 0 0 48px 16px color-mix(in srgb, var(--accent) 44%, transparent); }
+}
+/* Точка — минимальный точный курсор, виден на любом фоне */
+.cursor-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; mix-blend-mode: difference; }
+/* Прицел — тонкий крест в цвете акцента */
+.cursor-cross { width: 24px; height: 24px; }
+.cursor-cross::before, .cursor-cross::after {
+  content: ''; position: absolute; top: 50%; left: 50%; background: var(--accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.cursor-cross::before { width: 24px; height: 1.6px; transform: translate(-50%, -50%); }
+.cursor-cross::after { width: 1.6px; height: 24px; transform: translate(-50%, -50%); }
 
 /* WebGL shader canvas (nebula/waves) + constellation network canvas */
 .bg-shader, .bg-net { position: fixed; top: 0; left: 0; width: calc(100vw / var(--zoom)); height: calc(100vh / var(--zoom)); z-index: -1; pointer-events: none; display: block; transform: translateZ(0); will-change: transform; }
@@ -831,6 +852,23 @@ textarea { min-height: 84px; line-height: 1.6; }
 @keyframes logoRadar { 0% { transform: scale(0.35); opacity: 0.9; } 75% { opacity: 0; } 100% { transform: scale(1.18); opacity: 0; } }
 @keyframes logoBolt { 0%, 60%, 100% { opacity: 1; transform: scale(1); } 8% { opacity: 0.3; } 16% { opacity: 1; } 24% { opacity: 0.45; } 32% { opacity: 1; transform: scale(1.07); } 44% { transform: scale(1); } }
 @keyframes logoBloom { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(45deg) scale(1.12); } }
+/* Атом: три вложенные группы крутятся вокруг центра, каждая со своей скоростью */
+:root[data-logofx='anim'] .lg-atom-o1, :root[data-logofx='anim'] .lg-atom-o2, :root[data-logofx='anim'] .lg-atom-o3 { transform-box: view-box; transform-origin: 50% 50%; }
+:root[data-logofx='anim'] .lg-atom-o1 { animation: logoOrbit 7s linear infinite; }
+:root[data-logofx='anim'] .lg-atom-o2 { animation: logoOrbit 9.5s linear infinite; }
+:root[data-logofx='anim'] .lg-atom-o3 { animation: logoOrbit 12s linear infinite reverse; }
+/* Эквалайзер: столбцы растут из нижней кромки, разные фазы */
+:root[data-logofx='anim'] .lg-eq { transform-box: fill-box; transform-origin: bottom; }
+:root[data-logofx='anim'] .lg-eq1 { animation: logoEq 0.95s ease-in-out infinite; }
+:root[data-logofx='anim'] .lg-eq2 { animation: logoEq 0.95s ease-in-out infinite 0.18s; }
+:root[data-logofx='anim'] .lg-eq3 { animation: logoEq 0.95s ease-in-out infinite 0.36s; }
+:root[data-logofx='anim'] .lg-eq4 { animation: logoEq 0.95s ease-in-out infinite 0.12s; }
+:root[data-logofx='anim'] .lg-eq5 { animation: logoEq 0.95s ease-in-out infinite 0.3s; }
+@keyframes logoEq { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+/* Мандала: кольца лепестков навстречу друг другу */
+:root[data-logofx='anim'] .lg-mandala-a, :root[data-logofx='anim'] .lg-mandala-b { transform-box: view-box; transform-origin: 50% 50%; }
+:root[data-logofx='anim'] .lg-mandala-a { animation: logoOrbit 14s linear infinite; }
+:root[data-logofx='anim'] .lg-mandala-b { animation: logoOrbit 10s linear infinite reverse; }
 /* Переключатель «Анимация: Выкл» (data-logofx='none') — единственный способ
    их отключить. Системный prefers-reduced-motion не глушим: на Windows LTSC он
    часто включён по умолчанию, а пользователь явно попросил анимацию тумблером. */
@@ -907,6 +945,8 @@ textarea { min-height: 84px; line-height: 1.6; }
 .wk-cell.sel .wk-cell-wd, .wk-cell.sel .wk-cell-day { color: var(--accent-contrast); }
 .wk-cell.sel .wk-cell-dot i { background: var(--accent-contrast); }
 .wk-cell.sel .wk-cell-dot b { color: var(--accent-contrast); }
+.wk-empty { text-align: center; color: var(--text-3); font-size: 13px; padding: 15px 0 3px; }
+.section-label .wk-nav-tag { margin-left: 2px; }
 @media (max-width: 460px) {
   .wk-strip { gap: 4px; }
   .wk-cell { padding: 8px 0 6px; border-radius: 11px; }

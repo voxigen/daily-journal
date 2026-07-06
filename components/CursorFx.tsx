@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 // Custom cursor + pointer effects, driven by data-cursor / data-cursorfx on <html>.
 // Desktop-only: activates for fine pointers, so phones are unaffected.
 
-const CURSOR_STYLES = new Set(['ring', 'glow']);
-const FX = new Set(['trail', 'sparks', 'glow']);
+const CURSOR_STYLES = new Set(['ring', 'glow', 'dot', 'cross']);
+const FX = new Set(['trail', 'sparks', 'glow', 'ribbon', 'orbit', 'bubbles']);
 
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; size: number };
+type Pt = { x: number; y: number; life: number };
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.trim().replace('#', '');
@@ -64,12 +65,14 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
 
     let mx = -100, my = -100;      // raw pointer
     let rx = -100, ry = -100;      // lerped (ring)
-    let gx = -100, gy = -100;      // lerped (glow fx)
+    let gx = -100, gy = -100;      // lerped (glow / orbit fx)
     let scale = 1, scaleT = 1;
     let visible = false;
     let overText = false;          // native cursor restored over text fields
     let started = false;           // don't lerp from (-100,-100) on first move
-    const parts: Particle[] = [];
+    const parts: Particle[] = [];  // trail / sparks / bubbles
+    const pts: Pt[] = [];          // ribbon spine
+    let orbitAng = 0;
     let lastSpawn = 0, lastX = -100, lastY = -100;
     let accent: [number, number, number] = [90, 99, 216];
     let canvasDirty = false;       // canvas has pixels from the previous frame
@@ -92,7 +95,14 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
     function spark(x: number, y: number, boost = 0): Particle {
       const a = Math.random() * Math.PI * 2;
       const sp = 0.5 + Math.random() * (1.6 + boost);
-      return { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.7, life: 1, size: 1 + Math.random() * 2 };
+      return { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.7, life: 1, size: 1 + Math.random() * 2.4 };
+    }
+    function bubble(x: number, y: number): Particle {
+      return {
+        x: x + (Math.random() - 0.5) * 10, y,
+        vx: (Math.random() - 0.5) * 0.4, vy: -(0.5 + Math.random() * 1),
+        life: 1, size: 3 + Math.random() * 7,
+      };
     }
 
     function onMove(e: PointerEvent) {
@@ -108,18 +118,28 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
       const dist = Math.hypot(mx - lastX, my - lastY);
       const now = performance.now();
       if (fx === 'trail' && dist > 4) {
-        parts.push({ x: mx, y: my, vx: 0, vy: 0, life: 1, size: 4.4 });
+        parts.push({ x: mx, y: my, vx: 0, vy: 0, life: 1, size: 4.6 });
         lastX = mx; lastY = my;
         if (parts.length > 90) parts.shift();
       } else if (fx === 'sparks' && dist > 14 && now - lastSpawn > 24) {
         lastSpawn = now; lastX = mx; lastY = my;
         parts.push(spark(mx, my), spark(mx, my));
         if (parts.length > 160) parts.splice(0, parts.length - 160);
+      } else if (fx === 'bubbles' && dist > 14 && now - lastSpawn > 42) {
+        lastSpawn = now; lastX = mx; lastY = my;
+        parts.push(bubble(mx, my));
+        if (parts.length > 80) parts.shift();
+      } else if (fx === 'ribbon' && dist > 3) {
+        lastX = mx; lastY = my;
+        pts.push({ x: mx, y: my, life: 1 });
+        if (pts.length > 42) pts.shift();
       }
     }
     function onDown() {
       scaleT = 0.8;
-      if (fxOn && fx === 'sparks') for (let i = 0; i < 14; i++) parts.push(spark(mx, my, 1.2));
+      if (!fxOn) return;
+      if (fx === 'sparks') for (let i = 0; i < 14; i++) parts.push(spark(mx, my, 1.2));
+      else if (fx === 'bubbles') for (let i = 0; i < 6; i++) parts.push(bubble(mx, my));
     }
     function onUp() { scaleT = 1; }
     function onLeave() { visible = false; }
@@ -154,40 +174,96 @@ function CursorLayer({ cursor, fx }: { cursor: string; fx: string }) {
         }
       }
       if (!fxOn || !ctx || !cv) return;
-      // Idle mouse ⇒ nothing to draw: skip the full-screen clear entirely
-      // (it's a real cost on large canvases every frame).
-      const busy = fx === 'glow' ? visible : parts.length > 0;
+      // Idle ⇒ nothing to draw: skip the full-screen clear entirely (a real cost
+      // on large canvases every frame). Continuous effects stay busy while visible.
+      const continuous = fx === 'glow' || fx === 'orbit';
+      const busy = continuous ? visible : (parts.length > 0 || pts.length > 0);
       if (!busy && !canvasDirty) return;
       const [cr, cg, cb] = accent;
+      const rgba = (a: number) => `rgba(${cr},${cg},${cb},${a})`;
       ctx.clearRect(0, 0, cv.width, cv.height);
       canvasDirty = busy;
+
       if (fx === 'glow') {
         const gk = 1 - Math.exp(-dt * 9);
         gx += (mx - gx) * gk; gy += (my - gy) * gk;
         if (visible) {
-          const rad = 170 * dpr;
-          const g = ctx.createRadialGradient(gx * dpr, gy * dpr, 0, gx * dpr, gy * dpr, rad);
-          g.addColorStop(0, `rgba(${cr},${cg},${cb},0.16)`);
-          g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
-          ctx.fillStyle = g;
-          ctx.fillRect(gx * dpr - rad, gy * dpr - rad, rad * 2, rad * 2);
+          const cx = gx * dpr, cy = gy * dpr;
+          // Two-layer halo: a wide soft wash + a tighter brighter core.
+          const outer = 200 * dpr;
+          const g1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, outer);
+          g1.addColorStop(0, rgba(0.10)); g1.addColorStop(1, rgba(0));
+          ctx.fillStyle = g1; ctx.fillRect(cx - outer, cy - outer, outer * 2, outer * 2);
+          const inner = 72 * dpr;
+          const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, inner);
+          g2.addColorStop(0, rgba(0.16)); g2.addColorStop(1, rgba(0));
+          ctx.fillStyle = g2; ctx.fillRect(cx - inner, cy - inner, inner * 2, inner * 2);
+        }
+      } else if (fx === 'orbit') {
+        orbitAng += dt * 2.4;
+        const gk = 1 - Math.exp(-dt * 18);
+        gx += (mx - gx) * gk; gy += (my - gy) * gk;
+        if (visible) {
+          ctx.globalCompositeOperation = 'lighter';
+          const N = 3;
+          for (let i = 0; i < N; i++) {
+            const a = orbitAng + i * ((Math.PI * 2) / N);
+            const r = (17 + Math.sin(orbitAng * 1.4 + i) * 4) * dpr;
+            const x = gx * dpr + Math.cos(a) * r;
+            const y = gy * dpr + Math.sin(a) * r;
+            const s = 3.4 * dpr;
+            const g = ctx.createRadialGradient(x, y, 0, x, y, s * 2.6);
+            g.addColorStop(0, rgba(0.9)); g.addColorStop(1, rgba(0));
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s * 2.6, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      } else if (fx === 'ribbon') {
+        for (let i = pts.length - 1; i >= 0; i--) { pts[i].life -= dt * 1.7; if (pts[i].life <= 0) pts.splice(i, 1); }
+        if (pts.length > 1) {
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let i = 0; i < pts.length - 1; i++) {
+            const p = pts[i], q = pts[i + 1];
+            const head = (i + 1) / pts.length;        // newest points are at the end
+            ctx.strokeStyle = rgba(0.5 * p.life);
+            ctx.lineWidth = (0.6 + head * 6) * dpr;
+            ctx.beginPath(); ctx.moveTo(p.x * dpr, p.y * dpr); ctx.lineTo(q.x * dpr, q.y * dpr); ctx.stroke();
+          }
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      } else if (fx === 'bubbles') {
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const p = parts[i];
+          p.x += p.vx * step; p.y += p.vy * step; p.vy *= Math.pow(0.985, step);
+          p.size += 0.05 * step; p.life -= 0.011 * step;
+          if (p.life <= 0) { parts.splice(i, 1); continue; }
+          const a = p.life * 0.5;
+          ctx.beginPath(); ctx.arc(p.x * dpr, p.y * dpr, p.size * dpr, 0, Math.PI * 2);
+          ctx.strokeStyle = rgba(a); ctx.lineWidth = 1.3 * dpr; ctx.stroke();
+          ctx.beginPath();
+          ctx.arc((p.x - p.size * 0.3) * dpr, (p.y - p.size * 0.3) * dpr, p.size * 0.2 * dpr, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(a * 0.9); ctx.fill();
         }
       } else {
+        // trail / sparks — additive glowing dots
+        ctx.globalCompositeOperation = 'lighter';
         for (let i = parts.length - 1; i >= 0; i--) {
           const p = parts[i];
           if (fx === 'sparks') {
             p.x += p.vx * step; p.y += p.vy * step; p.vy += 0.05 * step;
             p.life -= 0.022 * step;
           } else {
-            p.life -= 0.026 * step;
+            p.life -= 0.03 * step;
           }
           if (p.life <= 0) { parts.splice(i, 1); continue; }
-          const a = fx === 'trail' ? p.life * 0.6 : p.life * 0.8;
+          const a = fx === 'trail' ? p.life * 0.5 : p.life * 0.8;
           ctx.beginPath();
           ctx.arc(p.x * dpr, p.y * dpr, p.size * p.life * dpr, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${cr},${cg},${cb},${a.toFixed(3)})`;
+          ctx.fillStyle = rgba(a);
           ctx.fill();
         }
+        ctx.globalCompositeOperation = 'source-over';
       }
     }
     raf = requestAnimationFrame(frame);

@@ -94,10 +94,14 @@ export default function WeekView({ today, offset, dates, initialPlanned, templat
       {/* Планы выбранного дня */}
       <div className="section">
         <div className="section-head">
-          <span className="section-label"><CalendarRange /> {WD_FULL[selected]}, {dayNum(selDate)} {monthShort(selDate)}</span>
+          <span className="section-label">
+            <CalendarRange /> {WD_FULL[selected]}, {dayNum(selDate)} {monthShort(selDate)}
+            {selDate === today && <span className="wk-nav-tag">сегодня</span>}
+          </span>
           {selItems.length > 0 && <span className="section-aside">{selItems.length}</span>}
         </div>
         <div className={`task-list${selItems.length === 0 ? ' task-list-empty' : ''}`}>
+          {selItems.length === 0 && <div className="wk-empty">На этот день планов пока нет</div>}
           {selItems.map((p) => {
             const color = p.template_color ?? 'var(--accent)';
             return (

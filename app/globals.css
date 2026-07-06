@@ -286,10 +286,14 @@ textarea { min-height: 84px; line-height: 1.6; }
 .topbar-actions { display: flex; align-items: center; gap: 4px; }
 
 .content { flex: 1; width: 100%; max-width: 768px; margin: 0 auto; padding: 30px 20px 44px; animation: pageIn 0.3s var(--ease); }
-/* Только прозрачность, без transform: transform на .content создавал backdrop-
-   контекст и стеклянные карточки на миг «матовели» при переходе между вкладками. */
 @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .content { animation: none; } }
+/* Стекло/матовое — единственные поверхности с backdrop-filter. И opacity, и
+   transform на .content создают новый backdrop-контекст, из-за чего во время
+   анимации появления стеклянные карточки размывают пустой .content и на миг
+   выглядят матовыми. Для этих поверхностей анимацию появления отключаем. */
+:root[data-surface='glass'] .content,
+:root[data-surface='matte'] .content { animation: none; }
 
 /* Editorial page header */
 .page-title { margin: 2px 0 28px; }

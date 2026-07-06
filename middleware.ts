@@ -4,7 +4,7 @@ import { SESSION_COOKIE, verifySession } from '@/lib/auth';
 // Страницы, доступные без сессии: логин + ссылки из писем.
 const PUBLIC_PATHS = ['/login', '/verify', '/reset'];
 // Реальные защищённые маршруты приложения (точный путь или его поддерево).
-const PROTECTED_PREFIXES = ['/day', '/history', '/stats', '/templates', '/learn', '/settings', '/api'];
+const PROTECTED_PREFIXES = ['/day', '/week', '/history', '/stats', '/templates', '/learn', '/settings', '/api'];
 
 function isKnownRoute(pathname: string): boolean {
   if (pathname === '/') return true;

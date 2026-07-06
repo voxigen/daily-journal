@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { logout as logoutAction } from '@/app/actions/auth';
-import { NotebookPen, CalendarDays, LayoutGrid, LogOut, ChartColumnBig, Settings, Languages } from 'lucide-react';
+import { NotebookPen, CalendarDays, CalendarRange, LayoutGrid, LogOut, ChartColumnBig, Settings, Languages } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import LogoIcon from './LogoIcon';
 
@@ -10,6 +10,7 @@ type Props = { children: React.ReactNode; title?: string; subtitle?: string };
 
 const NAV = [
   { href: '/',          Icon: NotebookPen,    label: 'Сегодня',    match: (p: string) => p === '/' || p.startsWith('/day') },
+  { href: '/week',      Icon: CalendarRange,  label: 'Неделя',     match: (p: string) => p === '/week' },
   { href: '/history',   Icon: CalendarDays,   label: 'История',    match: (p: string) => p === '/history' },
   { href: '/stats',     Icon: ChartColumnBig, label: 'Статистика', match: (p: string) => p === '/stats' },
   { href: '/learn',     Icon: Languages,      label: 'Слова',      match: (p: string) => p === '/learn' },

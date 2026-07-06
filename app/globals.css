@@ -819,18 +819,33 @@ textarea { min-height: 84px; line-height: 1.6; }
 :root[data-logofx='anim'] .lg-ray { animation: logoRay 2.7s ease-in-out infinite; }
 :root[data-logofx='anim'] .lg-orbit { transform-box: view-box; transform-origin: 50% 50%; animation: logoOrbit 7s linear infinite; }
 :root[data-logofx='anim'] .lg-luna { transform-box: fill-box; transform-origin: center; animation: logoLuna 5.5s ease-in-out infinite; }
+:root[data-logofx='anim'] .lg-ripple { transform-box: view-box; transform-origin: 50% 50%; }
+:root[data-logofx='anim'] .lg-ring1 { animation: logoRadar 2.2s ease-out infinite; }
+:root[data-logofx='anim'] .lg-ring2 { animation: logoRadar 2.2s ease-out infinite 1.1s; }
+:root[data-logofx='anim'] .lg-bolt { transform-box: fill-box; transform-origin: center; animation: logoBolt 2.8s ease-in-out infinite; }
+:root[data-logofx='anim'] .lg-bloom { transform-box: fill-box; transform-origin: center; animation: logoBloom 6s ease-in-out infinite; }
 @keyframes logoSpark { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.45); opacity: 0.35; } }
 @keyframes logoRay { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 @keyframes logoOrbit { to { transform: rotate(360deg); } }
 @keyframes logoLuna { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+@keyframes logoRadar { 0% { transform: scale(0.35); opacity: 0.9; } 75% { opacity: 0; } 100% { transform: scale(1.18); opacity: 0; } }
+@keyframes logoBolt { 0%, 60%, 100% { opacity: 1; transform: scale(1); } 8% { opacity: 0.3; } 16% { opacity: 1; } 24% { opacity: 0.45; } 32% { opacity: 1; transform: scale(1.07); } 44% { transform: scale(1); } }
+@keyframes logoBloom { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(45deg) scale(1.12); } }
 /* Переключатель «Анимация: Выкл» (data-logofx='none') — единственный способ
    их отключить. Системный prefers-reduced-motion не глушим: на Windows LTSC он
    часто включён по умолчанию, а пользователь явно попросил анимацию тумблером. */
 
-/* ── Tile FX (data-tilefx='neon') — accent glow on cards ── */
+/* ── Tile FX (data-tilefx='neon') — пульсирующее свечение акцентом на карточках ── */
 :root[data-tilefx='neon'] .metric, :root[data-tilefx='neon'] .task-list, :root[data-tilefx='neon'] .meal, :root[data-tilefx='neon'] .chart-card, :root[data-tilefx='neon'] .setting-card, :root[data-tilefx='neon'] .tpl-list, :root[data-tilefx='neon'] .hist-day, :root[data-tilefx='neon'] .callout {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 26%, transparent) !important;
+  animation: neonPulse 3.4s ease-in-out infinite;
+}
+/* Анимация свечения пересиливает !important на box-shadow, поэтому база остаётся
+   фолбэком (напр. при reduced-motion), а дыхание идёт поверх. */
+@keyframes neonPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 9px color-mix(in srgb, var(--accent) 15%, transparent); }
+  50% { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 62%, transparent), 0 0 28px color-mix(in srgb, var(--accent) 44%, transparent); }
 }
 
 /* Numbers that update in place shouldn't jiggle — fixed-width digits */
@@ -868,14 +883,35 @@ textarea { min-height: 84px; line-height: 1.6; }
 .learn-done p { color: var(--text-2); font-size: 14px; margin: 8px 0 22px; }
 @media (max-width: 460px) { .learn-options { grid-template-columns: 1fr; } }
 
-/* ── Week planner ── */
-.week-day { margin-bottom: 20px; }
-.week-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.week-wd { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 8px; }
-.week-day.today .week-wd { color: var(--accent); }
-.week-day.past { opacity: 0.6; }
-.week-dm { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.week-today-badge { font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); background: var(--accent-soft); padding: 2px 7px; border-radius: 20px; }
+/* ── Week planner (календарь) ── */
+.wk-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.wk-nav-range { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; display: inline-flex; align-items: baseline; gap: 9px; }
+.wk-nav-tag { font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 20px; }
+.wk-nav-btns { display: flex; align-items: center; gap: 4px; }
+.wk-today-btn { background: none; border: 1px solid var(--border-2); color: var(--text-2); font-family: inherit; font-size: 12.5px; font-weight: 500; padding: 6px 11px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.13s; margin-right: 4px; }
+.wk-today-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.wk-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 26px; }
+.wk-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 2px 7px; border: 1px solid var(--border-2); border-radius: 13px; background: var(--surface); cursor: pointer; font-family: inherit; color: var(--text); transition: transform 0.13s var(--ease), border-color 0.13s, background 0.13s; }
+.wk-cell:hover { border-color: var(--text-3); }
+.wk-cell:active { transform: scale(0.95); }
+.wk-cell-wd { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.03em; }
+.wk-cell-day { font-size: 16px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wk-cell-dot { height: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.wk-cell-dot i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); display: block; }
+.wk-cell-dot b { font-size: 10px; font-weight: 650; color: var(--accent); font-variant-numeric: tabular-nums; }
+.wk-cell.today { border-color: var(--accent); }
+.wk-cell.today .wk-cell-wd { color: var(--accent); }
+.wk-cell.past:not(.sel) { opacity: 0.5; }
+.wk-cell.sel { background: var(--accent); border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.wk-cell.sel .wk-cell-wd, .wk-cell.sel .wk-cell-day { color: var(--accent-contrast); }
+.wk-cell.sel .wk-cell-dot i { background: var(--accent-contrast); }
+.wk-cell.sel .wk-cell-dot b { color: var(--accent-contrast); }
+@media (max-width: 460px) {
+  .wk-strip { gap: 4px; }
+  .wk-cell { padding: 8px 0 6px; border-radius: 11px; }
+  .wk-cell-day { font-size: 15px; }
+}
 
 /* Offline */
 .offline-page { min-height: calc(100vh / var(--zoom)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-2); padding: 20px; text-align: center; }

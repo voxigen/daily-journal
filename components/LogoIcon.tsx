@@ -54,6 +54,26 @@ export const LOGO_ICONS: Record<string, Mark> = {
       <path className="lg-luna" d="M20.2 13.6A8.3 8.3 0 1 1 10.4 3.8a6.6 6.6 0 0 0 9.8 9.8Z" />
     </svg>
   ),
+  // Пульс — расходящиеся кольца сигнала
+  pulse: () => (
+    <svg viewBox="0 0 24 24" {...stroke}>
+      <circle className="lg-ripple lg-ring1" cx="12" cy="12" r="6" />
+      <circle className="lg-ripple lg-ring2" cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  // Молния — вспышка энергии
+  bolt: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path className="lg-bolt" d="M13 2.5 5.5 13.2H11l-1 8.3 8.5-12.1H12l1-6.9Z" />
+    </svg>
+  ),
+  // Цветение — искра-звезда, что вращается и дышит
+  bloom: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path className="lg-bloom" d="M12 4.5c.75 4.65 2.85 6.75 7.5 7.5-4.65.75-6.75 2.85-7.5 7.5-.75-4.65-2.85-6.75-7.5-7.5 4.65-.75 6.75-2.85 7.5-7.5Z" />
+    </svg>
+  ),
 };
 export const LOGO_KEYS = Object.keys(LOGO_ICONS);
 export const DEFAULT_LOGO = 'mark';

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import * as api from '@/app/actions/data';
 import AddTaskModal from './AddTaskModal';
 import TemplateIcon from './TemplateIcon';
-import { MONTHS_RU } from '@/lib/utils';
-import { Plus, Trash2 } from 'lucide-react';
+import { MONTHS_RU, mondayIndex } from '@/lib/utils';
+import { Plus, Trash2, ChevronLeft, ChevronRight, CalendarRange } from 'lucide-react';
 
 type Planned = {
   id: string; date: string; title: string;
@@ -15,18 +16,24 @@ type Template = {
   id: string; name: string; color: string; icon: string;
   fields: { name: string; placeholder: string; type: string }[];
 };
-// Данные из AddTaskModal (planMode отдаёт только заголовок + шаблон, остальное пустое).
 type PlanData = {
   title: string; template_id?: string; template_name?: string; template_color?: string; template_icon?: string;
   fields_data?: Record<string, string>; duration_minutes?: number;
 };
 
-const WEEKDAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+const WD_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const WD_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
-export default function WeekView({ today, dates, initialPlanned, templates }: {
-  today: string; dates: string[]; initialPlanned: Planned[]; templates: Template[];
+const dayNum = (d: string) => Number(d.slice(8, 10));
+const monthShort = (d: string) => MONTHS_RU[Number(d.slice(5, 7)) - 1];
+
+export default function WeekView({ today, offset, dates, initialPlanned, templates }: {
+  today: string; offset: number; dates: string[]; initialPlanned: Planned[]; templates: Template[];
 }) {
+  const router = useRouter();
   const [planned, setPlanned] = useState<Planned[]>(initialPlanned);
+  // На текущей неделе стартуем с сегодня, на других — с понедельника.
+  const [selected, setSelected] = useState<number>(offset === 0 ? mondayIndex(today) : 0);
   const [addDate, setAddDate] = useState<string | null>(null);
 
   async function add(date: string, data: PlanData) {
@@ -38,52 +45,83 @@ export default function WeekView({ today, dates, initialPlanned, templates }: {
     await api.deletePlanned(id);
   }
 
-  function dayMonth(date: string) {
-    return `${Number(date.slice(8, 10))} ${MONTHS_RU[Number(date.slice(5, 7)) - 1]}`;
-  }
+  const countFor = (date: string) => planned.filter((p) => p.date === date).length;
+  const goWeek = (o: number) => router.push(o === 0 ? '/week' : `/week?offset=${o}`);
+
+  const first = dates[0], last = dates[6];
+  const range = monthShort(first) === monthShort(last)
+    ? `${dayNum(first)}–${dayNum(last)} ${monthShort(last)}`
+    : `${dayNum(first)} ${monthShort(first)} – ${dayNum(last)} ${monthShort(last)}`;
+
+  const selDate = dates[selected];
+  const selItems = planned.filter((p) => p.date === selDate);
 
   return (
     <>
-      {dates.map((date, i) => {
-        const items = planned.filter((p) => p.date === date);
-        const isToday = date === today;
-        const isPast = date < today;
-        return (
-          <div key={date} className={`section week-day${isToday ? ' today' : ''}${isPast ? ' past' : ''}`}>
-            <div className="week-day-head">
-              <span className="week-wd">
-                {WEEKDAYS[i]}
-                {isToday && <span className="week-today-badge">сегодня</span>}
-              </span>
-              <span className="week-dm">{dayMonth(date)}</span>
-            </div>
-            <div className={`task-list${items.length === 0 ? ' task-list-empty' : ''}`}>
-              {items.map((p) => {
-                const color = p.template_color ?? 'var(--accent)';
-                return (
-                  <div key={p.id} className="task-row">
-                    <span className="task-dot" style={{ background: color, opacity: 0.6 }} />
-                    <div className="task-body">
-                      <div className="task-top">
-                        <span className="task-title">{p.title}</span>
-                        {p.template_name && (
-                          <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}>
-                            <TemplateIcon icon={p.template_icon} className="chip-ico" /> {p.template_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="task-actions">
-                      <button className="task-action del" onClick={() => remove(p.id)} aria-label="Удалить"><Trash2 /></button>
-                    </div>
+      {/* Навигация по неделям */}
+      <div className="wk-nav">
+        <span className="wk-nav-range">
+          {range}
+          {offset === 0 && <span className="wk-nav-tag">эта неделя</span>}
+        </span>
+        <div className="wk-nav-btns">
+          {offset !== 0 && <button className="wk-today-btn" onClick={() => goWeek(0)}>Сегодня</button>}
+          <button className="icon-btn" onClick={() => goWeek(offset - 1)} aria-label="Прошлая неделя"><ChevronLeft className="icon" /></button>
+          <button className="icon-btn" onClick={() => goWeek(offset + 1)} aria-label="Следующая неделя"><ChevronRight className="icon" /></button>
+        </div>
+      </div>
+
+      {/* Полоса дней недели */}
+      <div className="wk-strip">
+        {dates.map((date, i) => {
+          const n = countFor(date);
+          const isToday = date === today;
+          const isPast = date < today;
+          return (
+            <button
+              key={date}
+              className={`wk-cell${i === selected ? ' sel' : ''}${isToday ? ' today' : ''}${isPast ? ' past' : ''}`}
+              onClick={() => setSelected(i)}
+            >
+              <span className="wk-cell-wd">{WD_SHORT[i]}</span>
+              <span className="wk-cell-day">{dayNum(date)}</span>
+              <span className="wk-cell-dot">{n > 0 && <i />}{n > 1 && <b>{n}</b>}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Планы выбранного дня */}
+      <div className="section">
+        <div className="section-head">
+          <span className="section-label"><CalendarRange /> {WD_FULL[selected]}, {dayNum(selDate)} {monthShort(selDate)}</span>
+          {selItems.length > 0 && <span className="section-aside">{selItems.length}</span>}
+        </div>
+        <div className={`task-list${selItems.length === 0 ? ' task-list-empty' : ''}`}>
+          {selItems.map((p) => {
+            const color = p.template_color ?? 'var(--accent)';
+            return (
+              <div key={p.id} className="task-row">
+                <span className="task-dot" style={{ background: color, opacity: 0.65 }} />
+                <div className="task-body">
+                  <div className="task-top">
+                    <span className="task-title">{p.title}</span>
+                    {p.template_name && (
+                      <span className="task-chip" style={{ '--chip-bg': `${color}1f`, '--chip-fg': color } as React.CSSProperties}>
+                        <TemplateIcon icon={p.template_icon} className="chip-ico" /> {p.template_name}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
-              <button className="add-row" onClick={() => setAddDate(date)}><Plus /> Добавить план</button>
-            </div>
-          </div>
-        );
-      })}
+                </div>
+                <div className="task-actions">
+                  <button className="task-action del" onClick={() => remove(p.id)} aria-label="Удалить"><Trash2 /></button>
+                </div>
+              </div>
+            );
+          })}
+          <button className="add-row" onClick={() => setAddDate(selDate)}><Plus /> Добавить план</button>
+        </div>
+      </div>
 
       {addDate && (
         <AddTaskModal
